@@ -1,13 +1,11 @@
 # Employee Management System (EMS)
 
-A full-stack Employee Management System designed to manage employees, departments, tasks, and organizational information through a responsive web application.
+A full-stack Employee Management System designed to manage employees, departments, tasks, and organizational information through a responsive web application. The Employee Management System (EMS) is being developed as a full-stack web application to simplify employee and organizational management.
 
 > 🚧 **Project Status: Ongoing**
 > The frontend foundation and dashboard UI have been implemented. Backend development, database integration, and additional management features are currently in progress.
 
 ## 📌 Project Overview
-The Employee Management System (EMS) is being developed as a full-stack web application to simplify employee and organizational management.
-
 The application will provide a centralized interface for managing:
 - Employees
 - Departments
@@ -58,7 +56,7 @@ The project is being developed using **React for the frontend**, **Node.js and E
 - [ ] Task collection/model
 - [ ] Database integration with Express
 
-## 📂 Current Project Structure
+## Current Project Structure
 
 ```text
 ems-application/
