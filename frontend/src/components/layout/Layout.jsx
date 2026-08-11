@@ -5,31 +5,39 @@ import Sidebar from './Sidebar'
 import Header from './Header'
 
 function Layout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  const closeSidebar = () => {
+    setIsSidebarOpen(false)
+  }
 
   return (
     <div className="app">
+
       <Sidebar
-        isOpen={sidebarOpen}
-        closeSidebar={() => setSidebarOpen(false)}
+        isOpen={isSidebarOpen}
+        closeSidebar={closeSidebar}
       />
 
-      {sidebarOpen && (
+      {isSidebarOpen && (
         <div
           className="sidebar-overlay"
-          onClick={() => setSidebarOpen(false)}
+          onClick={closeSidebar}
         />
       )}
 
       <div className="main-wrapper">
+
         <Header
-          openSidebar={() => setSidebarOpen(true)}
+          openSidebar={() => setIsSidebarOpen(true)}
         />
 
         <main className="page-content">
           <Outlet />
         </main>
+
       </div>
+
     </div>
   )
 }

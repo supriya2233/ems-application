@@ -1,20 +1,57 @@
-function StatCard({ title, value, change, type }) {
-  return (
-    <div className="stat-card">
-      <div className="stat-card-top">
-        <p>{title}</p>
+function StatCard({
+  title,
+  value,
+  description,
+  warning = false,
+  neutral = false,
+}) {
 
-        <span className={`stat-icon stat-icon-${type}`}>
-          {type === 'warning' ? '!' : '•'}
+  let iconClass = 'stat-card-icon'
+
+  if (warning) {
+    iconClass += ' warning'
+  }
+
+  if (neutral) {
+    iconClass += ' neutral'
+  }
+
+  let descriptionClass = 'stat-card-description'
+
+  if (warning) {
+    descriptionClass += ' warning'
+  }
+
+  if (neutral) {
+    descriptionClass += ' neutral'
+  }
+
+  return (
+    <article className="stat-card">
+
+      <div className="stat-card-header">
+
+        <span className="stat-card-title">
+          {title}
         </span>
+
+        <span className={iconClass}>
+          {warning ? '!' : neutral ? '•' : '•'}
+        </span>
+
       </div>
 
-      <h3>{value}</h3>
 
-      <p className={`stat-change stat-change-${type}`}>
-        {change}
-      </p>
-    </div>
+      <div className="stat-card-value">
+        {value}
+      </div>
+
+
+      <div className={descriptionClass}>
+        {description}
+      </div>
+
+    </article>
   )
 }
 

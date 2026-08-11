@@ -3,54 +3,108 @@ import RecentEmployees from '../components/dashboard/RecentEmployees'
 import DepartmentOverview from '../components/dashboard/DepartmentOverview'
 import TaskOverview from '../components/dashboard/TaskOverview'
 
-import { dashboardStats } from '../data/dashboardData'
-
 function Dashboard() {
+
   return (
     <div className="dashboard-page">
+
+      {/* =================================================
+          DASHBOARD INTRO
+      ================================================= */}
+
       <section className="dashboard-welcome">
+
         <div>
-          <p className="welcome-label">Welcome back 👋</p>
 
-          <h1>Good evening, Administrator</h1>
-
-          <p className="welcome-description">
-            Here's an overview of your organization's
-            employees and activities.
+          <p className="dashboard-eyebrow">
+            Organization Overview
           </p>
+
+          <h1>
+            Dashboard
+          </h1>
+
+          <p className="dashboard-description">
+            Overview of your organization's employees and activities.
+          </p>
+
         </div>
+
 
         <div className="dashboard-date">
-          <span>Today</span>
+
+          <span>
+            Today
+          </span>
+
           <strong>
-            {new Date().toLocaleDateString('en-IN', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            })}
+            11 Aug 2026
           </strong>
+
         </div>
+
       </section>
 
-      <section className="stats-grid">
-        {dashboardStats.map((stat) => (
-          <StatCard
-            key={stat.title}
-            title={stat.title}
-            value={stat.value}
-            change={stat.change}
-            type={stat.type}
-          />
-        ))}
+
+      {/* =================================================
+          STATISTICS
+      ================================================= */}
+
+      <section className="dashboard-stats">
+
+        <StatCard
+          title="Total Employees"
+          value="24"
+          description="+4 this month"
+        />
+
+        <StatCard
+          title="Active Employees"
+          value="21"
+          description="87.5% of total"
+        />
+
+        <StatCard
+          title="Departments"
+          value="6"
+          description="Across organization"
+        />
+
+        <StatCard
+          title="Total Tasks"
+          value="42"
+          description="12 pending"
+          warning
+        />
+
       </section>
+
+
+      {/* =================================================
+          LOWER DASHBOARD
+      ================================================= */}
 
       <section className="dashboard-grid">
-        <RecentEmployees />
 
-        <DepartmentOverview />
+        <div>
 
-        <TaskOverview />
+          <RecentEmployees />
+
+        </div>
+
+
+        <div>
+
+          <DepartmentOverview />
+
+          <div style={{ marginTop: '12px' }}>
+            <TaskOverview />
+          </div>
+
+        </div>
+
       </section>
+
     </div>
   )
 }

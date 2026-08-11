@@ -1,47 +1,53 @@
-import { useLocation } from 'react-router-dom'
-
-const pageTitles = {
-  '/dashboard': 'Dashboard',
-  '/employees': 'Employees',
-  '/departments': 'Departments',
-  '/tasks': 'Tasks',
-}
-
 function Header({ openSidebar }) {
-  const location = useLocation()
-
-  const title = pageTitles[location.pathname] || 'Dashboard'
 
   return (
     <header className="header">
+
       <div className="header-left">
+
         <button
           className="mobile-menu-button"
           onClick={openSidebar}
-          aria-label="Open menu"
+          aria-label="Open navigation"
         >
           ☰
         </button>
 
         <div>
-          <p className="header-breadcrumb">
+
+          <p className="header-eyebrow">
             Employee Management System
           </p>
 
-          <h2>{title}</h2>
+          <h1 className="header-title">
+            Dashboard
+          </h1>
+
         </div>
+
       </div>
 
-      <div className="header-user">
-        <div className="user-avatar">
+
+      <div className="header-right">
+
+        <div className="header-avatar">
           A
         </div>
 
-        <div className="user-details">
-          <strong>Administrator</strong>
-          <span>System Manager</span>
+        <div className="header-user-info">
+
+          <p className="header-user-name">
+            Administrator
+          </p>
+
+          <p className="header-user-role">
+            SYSTEM MANAGER
+          </p>
+
         </div>
+
       </div>
+
     </header>
   )
 }
