@@ -1,4 +1,4 @@
-import StatCard from '../components/dashboard/StatCard'
+import StatCard from '../components/common/StatCard'
 import RecentEmployees from '../components/dashboard/RecentEmployees'
 import DepartmentOverview from '../components/dashboard/DepartmentOverview'
 import TaskOverview from '../components/dashboard/TaskOverview'

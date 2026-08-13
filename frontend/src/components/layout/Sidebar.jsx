@@ -1,66 +1,145 @@
 import { NavLink } from 'react-router-dom'
 
 function Sidebar({ isOpen, closeSidebar }) {
-
   const navigationGroups = [
     {
-      title: 'Main',
+      title: 'MAIN',
       items: [
-        { label: 'Dashboard', path: '/dashboard', icon: '▦' },
-        { label: 'Employees', path: '/employees', icon: '♙' },
-        { label: 'Departments', path: '/departments', icon: '▤' },
-        { label: 'Attendance', path: '/attendance', icon: '✓' },
-        { label: 'Leave Management', path: '/leave', icon: '□' },
-        { label: 'Tasks', path: '/tasks', icon: '☑' },
+        {
+          label: 'Dashboard',
+          path: '/dashboard',
+          icon: '▦',
+        },
+        {
+          label: 'Employees',
+          path: '/employees',
+          icon: '♙',
+        },
+        {
+          label: 'Departments',
+          path: '/departments',
+          icon: '▤',
+        },
+        {
+          label: 'Tasks',
+          path: '/tasks',
+          icon: '✓',
+          badge: 12,
+        },
       ],
     },
 
     {
-  title: 'Workforce',
-  items: [
-    { label: 'Performance', path: '/performance', icon: '◎' },
-    { label: 'Recruitment', path: '/recruitment', icon: '♙' },
-    { label: 'Onboarding', path: '/onboarding', icon: '+' },
-    { label: 'Payroll', path: '/payroll', icon: '₹' },
-    { label: 'Assets', path: '/assets', icon: '▱' },
-    { label: 'Documents', path: '/documents', icon: '▧' },
-  ],
-
-    },
-
-    {
-      title: 'Insights',
+      title: 'INSIGHTS',
       items: [
-        { label: 'Analytics', path: '/analytics', icon: '▥' },
-        { label: 'Reports', path: '/reports', icon: '▤' },
+        {
+          label: 'Analytics',
+          path: '/analytics',
+          icon: '▥',
+        },
+        {
+          label: 'Attendance',
+          path: '/attendance',
+          icon: '✓',
+        },
       ],
     },
 
     {
-      title: 'Communication',
+      title: 'HR',
       items: [
-        { label: 'Announcements', path: '/announcements', icon: '◈' },
-        { label: 'Calendar', path: '/calendar', icon: '□' },
+        {
+          label: 'Leave Management',
+          path: '/leave',
+          icon: '□',
+          badge: 3,
+        },
+        {
+          label: 'Payroll',
+          path: '/payroll',
+          icon: '₹',
+        },
+        {
+          label: 'Recruitment',
+          path: '/recruitment',
+          icon: '♙',
+          badge: 5,
+        },
+        {
+          label: 'Onboarding',
+          path: '/onboarding',
+          icon: '+',
+          badge: 2,
+        },
+        {
+          label: 'Performance',
+          path: '/performance',
+          icon: '◎',
+        },
       ],
     },
 
     {
-      title: 'System',
+      title: 'TOOLS',
       items: [
-        { label: 'Notifications', path: '/notifications', icon: '♢' },
-        { label: 'Settings', path: '/settings', icon: '⚙' },
-        { label: 'Help & Support', path: '/help', icon: '?' },
+        {
+          label: 'Documents',
+          path: '/documents',
+          icon: '▧',
+        },
+        {
+          label: 'Assets',
+          path: '/assets',
+          icon: '▱',
+        },
+        {
+          label: 'Calendar',
+          path: '/calendar',
+          icon: '□',
+        },
+        {
+          label: 'Announcements',
+          path: '/announcements',
+          icon: '◇',
+          badge: 2,
+        },
+        {
+          label: 'Notifications',
+          path: '/notifications',
+          icon: '♢',
+          badge: 4,
+        },
+      ],
+    },
+
+    {
+      title: 'SYSTEM',
+      items: [
+        {
+          label: 'Reports',
+          path: '/reports',
+          icon: '▤',
+        },
+        {
+          label: 'Settings',
+          path: '/settings',
+          icon: '⚙',
+        },
+        {
+          label: 'Help & Support',
+          path: '/help',
+          icon: '?',
+        },
       ],
     },
   ]
 
   return (
-    <aside className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}>
-
+    <aside
+      className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}
+    >
       {/* Brand */}
-
       <div className="sidebar-brand">
-
         <div className="brand-logo">
           E
         </div>
@@ -69,28 +148,20 @@ function Sidebar({ isOpen, closeSidebar }) {
           <h1>EMS</h1>
           <p>Employee Management</p>
         </div>
-
       </div>
 
-
       {/* Navigation */}
-
       <nav className="sidebar-navigation">
-
         {navigationGroups.map((group) => (
-
           <div
             className="navigation-group"
             key={group.title}
           >
-
             <p className="navigation-label">
               {group.title}
             </p>
 
-
             {group.items.map((item) => (
-
               <NavLink
                 key={item.path}
                 to={item.path}
@@ -101,29 +172,24 @@ function Sidebar({ isOpen, closeSidebar }) {
                   }`
                 }
               >
-
                 <span className="nav-icon">
                   {item.icon}
                 </span>
 
-                <span>
+                <span className="nav-label">
                   {item.label}
                 </span>
 
+                {item.badge && (
+                  <span className="nav-badge">
+                    {item.badge}
+                  </span>
+                )}
               </NavLink>
-
             ))}
-
           </div>
-
         ))}
-
       </nav>
-
-
-
-      
-
     </aside>
   )
 }

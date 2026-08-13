@@ -1,0 +1,100 @@
+export const departments = [
+  {
+    id: 1,
+    name: 'Engineering',
+    code: 'ENG',
+    manager: 'Arjun Kumar',
+    employees: 8,
+    active: 7,
+    onLeave: 1,
+    openTasks: 12,
+    completedTasks: 28,
+    description: 'Software development, infrastructure and technical operations.',
+    color: 'orange',
+  },
+  {
+    id: 2,
+    name: 'Human Resources',
+    code: 'HR',
+    manager: 'Sneha Reddy',
+    employees: 4,
+    active: 3,
+    onLeave: 1,
+    openTasks: 6,
+    completedTasks: 18,
+    description: 'People operations, recruitment and employee engagement.',
+    color: 'blue',
+  },
+  {
+    id: 3,
+    name: 'Design',
+    code: 'DES',
+    manager: 'Priya Sharma',
+    employees: 5,
+    active: 5,
+    onLeave: 0,
+    openTasks: 8,
+    completedTasks: 22,
+    description: 'Product design, UX research and visual design.',
+    color: 'purple',
+  },
+  {
+    id: 4,
+    name: 'Finance',
+    code: 'FIN',
+    manager: 'Karan Mehta',
+    employees: 3,
+    active: 3,
+    onLeave: 0,
+    openTasks: 5,
+    completedTasks: 16,
+    description: 'Financial planning, payroll and accounting operations.',
+    color: 'green',
+  },
+  {
+    id: 5,
+    name: 'Marketing',
+    code: 'MKT',
+    manager: 'Meera Nair',
+    employees: 4,
+    active: 3,
+    onLeave: 1,
+    openTasks: 7,
+    completedTasks: 19,
+    description: 'Brand, campaigns, communications and growth initiatives.',
+    color: 'yellow',
+  },
+  {
+    id: 6,
+    name: 'Management',
+    code: 'MGT',
+    manager: 'Rahul Verma',
+    employees: 2,
+    active: 2,
+    onLeave: 0,
+    openTasks: 4,
+    completedTasks: 14,
+    description: 'Business strategy, project management and leadership.',
+    color: 'red',
+  },
+]
+
+export const departmentStats = {
+  totalDepartments: departments.length,
+  totalEmployees: departments.reduce(
+    (total, department) => total + department.employees,
+    0
+  ),
+  activeEmployees: departments.reduce(
+    (total, department) => total + department.active,
+    0
+  ),
+  employeesOnLeave: departments.reduce(
+    (total, department) => total + department.onLeave,
+    0
+  ),
+  openTasks: departments.reduce(
+    (total, department) => total + department.openTasks,
+    0
+  ),
+}

@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import DataTable from '../components/common/DataTable'
+import Badge from '../components/common/Badge'
 
 const attendanceEmployees = [
   {
@@ -520,102 +522,41 @@ function Attendance() {
 
         {/* TABLE */}
 
-        <div className="attendance-table-wrapper">
-
-          <table className="attendance-table">
-
-            <thead>
-
-              <tr>
-                <th>
-                  Employee
-                </th>
-
-                <th>
-                  Department
-                </th>
-
-                <th>
-                  Status
-                </th>
-
-                <th>
-                  Check In
-                </th>
-
-                <th>
-                  Check Out
-                </th>
-
-                <th>
-                  Hours
-                </th>
-              </tr>
-
-            </thead>
-
-            <tbody>
-
-              {filteredEmployees.map((employee) => (
-
-                <tr key={employee.id}>
-
-                  <td>
-                    <div className="attendance-employee">
-
-                      <div className="attendance-avatar">
-                        {employee.name.charAt(0)}
-                      </div>
-
-                      <strong>
-                        {employee.name}
-                      </strong>
-
-                    </div>
-                  </td>
-
-                  <td>
-                    {employee.department}
-                  </td>
-
-                  <td>
-
-                    <span
-                      className={`attendance-status attendance-status-${employee.status
-                        .toLowerCase()
-                        .replace(' ', '-')}`}
-                    >
-                      {employee.status}
-                    </span>
-
-                  </td>
-
-                  <td>
-                    {employee.checkIn}
-                  </td>
-
-                  <td>
-                    {employee.checkOut}
-                  </td>
-
-                  <td>
-                    {employee.hours}
-                  </td>
-
-                </tr>
-
-              ))}
-
-            </tbody>
-
-          </table>
-
-        </div>
+        <DataTable
+  columns={attendanceColumns}
+  data={filteredEmployees}
+  emptyMessage="No attendance records found."
+/>
 
       </section>
 
     </div>
   )
 }
-
+const attendanceColumns = [
+  {
+    key: 'name',
+    label: 'Employee',
+  },
+  {
+    key: 'department',
+    label: 'Department',
+  },
+  {
+    key: 'status',
+    label: 'Status',
+  },
+  {
+    key: 'checkIn',
+    label: 'Check In',
+  },
+  {
+    key: 'checkOut',
+    label: 'Check Out',
+  },
+  {
+    key: 'hours',
+    label: 'Working Hours',
+  },
+]
 export default Attendance
