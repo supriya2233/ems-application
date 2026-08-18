@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import connectDB from './config/db.js'
+import employeeRoutes from './routes/employeeRoutes.js'
 
 dotenv.config()
 
@@ -16,6 +17,8 @@ app.get('/api/health', (req, res) => {
     message: 'EMS backend is running',
   })
 })
+
+app.use('/api/employees', employeeRoutes)
 
 const PORT = process.env.PORT || 5000
 

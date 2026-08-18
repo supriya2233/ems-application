@@ -1,15 +1,40 @@
-import { useMemo, useState } from 'react'
-import { employees as initialEmployees } from '../data/employees'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  getEmployees,
+  createEmployee,
+} from '../services/employeeService'
 import Badge from '../components/common/Badge'
 import SearchBar from '../components/common/SearchBar'
 
 function Employees() {
-  const [employees, setEmployees] = useState(initialEmployees)
+  const [employees, setEmployees] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('all')
   const [viewMode, setViewMode] = useState('list')
   const [search, setSearch] = useState('')
   const [departmentFilter, setDepartmentFilter] = useState('All')
   const [showModal, setShowModal] = useState(false)
+
+  useEffect(() => {
+  const loadEmployees = async () => {
+    try {
+      setLoading(true)
+      setError('')
+
+      const data = await getEmployees()
+
+      setEmployees(data)
+    } catch (error) {
+      console.error('Failed to load employees:', error)
+      setError('Failed to load employees from the server.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  loadEmployees()
+}, [])
 
   const [newEmployee, setNewEmployee] = useState({
     name: '',
@@ -21,9 +46,9 @@ function Employees() {
   })
 
   const departments = [
-    'All',
-    ...new Set(initialEmployees.map((employee) => employee.department)),
-  ]
+  'All',
+  ...new Set(employees.map((employee) => employee.department)),
+]
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((employee) => {
@@ -65,12 +90,13 @@ function Employees() {
     }))
   }
 
-  const handleAddEmployee = (event) => {
-    event.preventDefault()
+  const handleAddEmployee = async (event) => {
+  event.preventDefault()
 
+  try {
     const employee = {
+      employeeId: `EMP${String(employees.length + 1).padStart(3, '0')}`,
       ...newEmployee,
-      id: `EMP${String(employees.length + 1).padStart(3, '0')}`,
       initials: newEmployee.name
         .split(' ')
         .map((part) => part[0])
@@ -82,7 +108,12 @@ function Employees() {
       manager: 'Administrator',
     }
 
-    setEmployees((previous) => [...previous, employee])
+    const createdEmployee = await createEmployee(employee)
+
+    setEmployees((previous) => [
+      createdEmployee,
+      ...previous,
+    ])
 
     setNewEmployee({
       name: '',
@@ -94,10 +125,26 @@ function Employees() {
     })
 
     setShowModal(false)
+  } catch (error) {
+    console.error('Failed to add employee:', error)
+    alert(error.message)
   }
+}
 
   return (
     <section className="employees-page">
+
+      {loading && (
+  <div className="empty-state">
+    <strong>Loading employees...</strong>
+  </div>
+)}
+
+{error && (
+  <div className="empty-state">
+    <strong>{error}</strong>
+  </div>
+)}
 
       {/* Page Header */}
       <div className="page-header">
