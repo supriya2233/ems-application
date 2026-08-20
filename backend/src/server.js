@@ -3,6 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import connectDB from './config/db.js'
 import employeeRoutes from './routes/employeeRoutes.js'
+import departmentRoutes from './routes/departmentRoutes.js'
 
 dotenv.config()
 
@@ -19,6 +20,7 @@ app.get('/api/health', (req, res) => {
 })
 
 app.use('/api/employees', employeeRoutes)
+app.use('/api/departments', departmentRoutes)
 
 const PORT = process.env.PORT || 5000
 

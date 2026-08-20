@@ -29,3 +29,35 @@ export const createEmployee = async (employee) => {
 
   return result.data
 }
+
+export const updateEmployee = async (id, employee) => {
+  const response = await fetch(`${API_URL}/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(employee),
+  })
+
+  const result = await response.json()
+
+  if (!response.ok) {
+    throw new Error(result.message || 'Failed to update employee')
+  }
+
+  return result.data
+}
+
+export const deleteEmployee = async (id) => {
+  const response = await fetch(`${API_URL}/${id}`, {
+    method: 'DELETE',
+  })
+
+  const result = await response.json()
+
+  if (!response.ok) {
+    throw new Error(result.message || 'Failed to delete employee')
+  }
+
+  return result
+}
