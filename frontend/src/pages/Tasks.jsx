@@ -5,8 +5,11 @@ import {
   updateTask,
   deleteTask,
 } from '../services/taskService'
+
 import PageHeader from '../components/common/PageHeader'
 import Button from '../components/common/Button'
+import AddTaskModal from '../components/tasks/AddTaskModal'
+import EditTaskModal from '../components/tasks/EditTaskModal'
 
 const columns = [
   {
@@ -29,22 +32,20 @@ const columns = [
 
 function Tasks() {
   const [tasks, setTasks] = useState([])
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const [view, setView] = useState('board')
 
-  const [showModal, setShowModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [editingTask, setEditingTask] = useState(null)
 
-  const [newTask, setNewTask] = useState({
-    title: '',
-    description: '',
-    assignee: '',
-    department: '',
-    priority: 'Medium',
-    status: 'To Do',
-    dueDate: '',
-  })
+  /*
+   * ------------------------------------------------
+   * LOAD TASKS
+   * ------------------------------------------------
+   */
 
   useEffect(() => {
     const loadTasks = async () => {
@@ -56,7 +57,9 @@ function Tasks() {
 
         setTasks(data)
       } catch (error) {
-        setError(error.message || 'Failed to load tasks')
+        setError(
+          error.message || 'Failed to load tasks'
+        )
       } finally {
         setLoading(false)
       }
@@ -65,80 +68,67 @@ function Tasks() {
     loadTasks()
   }, [])
 
-  const taskStats = useMemo(() => {
-    return {
-      total: tasks.length,
+  /*
+   * ------------------------------------------------
+   * CREATE TASK
+   * ------------------------------------------------
+   */
 
-      todo: tasks.filter(
-        (task) => task.status === 'To Do',
-      ).length,
-
-      inProgress: tasks.filter(
-        (task) => task.status === 'In Progress',
-      ).length,
-
-      completed: tasks.filter(
-        (task) => task.status === 'Completed',
-      ).length,
-    }
-  }, [tasks])
-
-  const groupedTasks = useMemo(() => {
-    return columns.reduce((groups, column) => {
-      groups[column.key] = tasks.filter(
-        (task) => task.status === column.key,
-      )
-
-      return groups
-    }, {})
-  }, [tasks])
-
-  const handleInputChange = (event) => {
-    const { name, value } = event.target
-
-    setNewTask((previous) => ({
-      ...previous,
-      [name]: value,
-    }))
-  }
-
-  const handleAddTask = async (event) => {
-    event.preventDefault()
-
+  const handleCreateTask = async (taskData) => {
     try {
       setError('')
 
-      const task = {
-        taskId: `TASK${String(tasks.length + 1).padStart(3, '0')}`,
-        ...newTask,
-      }
+      const createdTask = await createTask(taskData)
 
-      const createdTask = await createTask(task)
-
-      setTasks((previous) => [
+      setTasks((previousTasks) => [
         createdTask,
-        ...previous,
+        ...previousTasks,
       ])
-
-      setNewTask({
-        title: '',
-        description: '',
-        assignee: '',
-        department: '',
-        priority: 'Medium',
-        status: 'To Do',
-        dueDate: '',
-      })
-
-      setShowModal(false)
     } catch (error) {
-      setError(error.message || 'Failed to create task')
+      throw new Error(
+        error.message || 'Failed to create task'
+      )
     }
   }
 
-  const handleDeleteTask = async (id) => {
+  /*
+   * ------------------------------------------------
+   * UPDATE TASK
+   * ------------------------------------------------
+   */
+
+  const handleUpdateTask = async (taskId, taskData) => {
+    try {
+      setError('')
+
+      const updatedTask = await updateTask(
+        taskId,
+        taskData
+      )
+
+      setTasks((previousTasks) =>
+        previousTasks.map((task) =>
+          task._id === taskId
+            ? updatedTask
+            : task
+        )
+      )
+    } catch (error) {
+      throw new Error(
+        error.message || 'Failed to update task'
+      )
+    }
+  }
+
+  /*
+   * ------------------------------------------------
+   * DELETE TASK
+   * ------------------------------------------------
+   */
+
+  const handleDeleteTask = async (taskId) => {
     const confirmed = window.confirm(
-      'Are you sure you want to delete this task?',
+      'Are you sure you want to delete this task?'
     )
 
     if (!confirmed) {
@@ -148,58 +138,220 @@ function Tasks() {
     try {
       setError('')
 
-      await deleteTask(id)
+      await deleteTask(taskId)
 
-      setTasks((previous) =>
-        previous.filter((task) => task._id !== id),
+      setTasks((previousTasks) =>
+        previousTasks.filter(
+          (task) => task._id !== taskId
+        )
       )
+
+      if (editingTask?._id === taskId) {
+        setEditingTask(null)
+      }
     } catch (error) {
-      setError(error.message || 'Failed to delete task')
+      setError(
+        error.message || 'Failed to delete task'
+      )
     }
   }
 
-  const handleStatusChange = async (task, status) => {
+  /*
+   * ------------------------------------------------
+   * CHANGE STATUS
+   * ------------------------------------------------
+   */
+
+  const handleStatusChange = async (
+    taskId,
+    newStatus
+  ) => {
     try {
       setError('')
 
       const updatedTask = await updateTask(
-        task._id,
-        { status },
+        taskId,
+        {
+          status: newStatus,
+        }
       )
 
-      setTasks((previous) =>
-        previous.map((item) =>
-          item._id === updatedTask._id
+      setTasks((previousTasks) =>
+        previousTasks.map((task) =>
+          task._id === taskId
             ? updatedTask
-            : item,
-        ),
+            : task
+        )
       )
     } catch (error) {
-      setError(error.message || 'Failed to update task')
+      setError(
+        error.message ||
+          'Failed to update task status'
+      )
     }
   }
 
+  /*
+   * ------------------------------------------------
+   * TASK STATISTICS
+   * ------------------------------------------------
+   */
+
+  const taskStats = useMemo(() => {
+    const today = new Date()
+
+    return {
+      total: tasks.length,
+
+      todo: tasks.filter(
+        (task) => task.status === 'To Do'
+      ).length,
+
+      inProgress: tasks.filter(
+        (task) => task.status === 'In Progress'
+      ).length,
+
+      pending: tasks.filter(
+        (task) => task.status === 'Pending'
+      ).length,
+
+      completed: tasks.filter(
+        (task) => task.status === 'Completed'
+      ).length,
+
+      overdue: tasks.filter((task) => {
+        if (task.status === 'Completed') {
+          return false
+        }
+
+        if (!task.dueDate) {
+          return false
+        }
+
+        return new Date(task.dueDate) < today
+      }).length,
+    }
+  }, [tasks])
+
+  /*
+   * ------------------------------------------------
+   * GROUP TASKS FOR KANBAN BOARD
+   * ------------------------------------------------
+   */
+
+  const groupedTasks = useMemo(() => {
+    return columns.reduce((groups, column) => {
+      groups[column.key] = tasks.filter(
+        (task) => task.status === column.key
+      )
+
+      return groups
+    }, {})
+  }, [tasks])
+
+  /*
+   * ------------------------------------------------
+   * FORMAT DATE
+   * ------------------------------------------------
+   */
+
+  const formatDate = (date) => {
+    if (!date) {
+      return '-'
+    }
+
+    return new Date(date).toLocaleDateString(
+      'en-IN',
+      {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      }
+    )
+  }
+
+  /*
+   * ------------------------------------------------
+   * INITIALS
+   * ------------------------------------------------
+   */
+
+  const getInitials = (name = '') => {
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase()
+  }
+
+  /*
+   * ------------------------------------------------
+   * LOADING STATE
+   * ------------------------------------------------
+   */
+
+  if (loading) {
+    return (
+      <div className="module-page">
+
+        <PageHeader
+          eyebrow="WORK MANAGEMENT"
+          title="Tasks"
+          description="Organize, track and monitor work across your organization."
+        />
+
+        <div className="content-section">
+          <p>Loading tasks...</p>
+        </div>
+
+      </div>
+    )
+  }
+
+  /*
+   * ------------------------------------------------
+   * PAGE
+   * ------------------------------------------------
+   */
+
   return (
     <div className="module-page">
+
+      {/* ==========================================
+          HEADER
+      ========================================== */}
 
       <PageHeader
         eyebrow="WORK MANAGEMENT"
         title="Tasks"
         description="Organize, track and monitor work across your organization."
         action={
-          <Button onClick={() => setShowModal(true)}>
+          <Button
+            onClick={() => {
+              setError('')
+              setShowAddModal(true)
+            }}
+          >
             + Add Task
           </Button>
         }
       />
 
+      {/* ==========================================
+          ERROR
+      ========================================== */}
+
       {error && (
-        <div className="error-message">
-          {error}
+        <div className="content-section">
+          <p>{error}</p>
         </div>
       )}
 
-      {/* Stats */}
+      {/* ==========================================
+          STATISTICS
+      ========================================== */}
 
       <div className="stats-grid task-stats">
 
@@ -229,26 +381,39 @@ function Tasks() {
 
       </div>
 
-      {/* Toolbar */}
+      {/* ==========================================
+          TOOLBAR
+      ========================================== */}
 
       <div className="task-toolbar">
 
         <div>
           <h2>Task Board</h2>
-          <p>Current task distribution</p>
+
+          <p>
+            Current task distribution
+          </p>
         </div>
 
         <div className="view-toggle">
 
           <button
-            className={view === 'board' ? 'active' : ''}
+            className={
+              view === 'board'
+                ? 'active'
+                : ''
+            }
             onClick={() => setView('board')}
           >
             Board
           </button>
 
           <button
-            className={view === 'list' ? 'active' : ''}
+            className={
+              view === 'list'
+                ? 'active'
+                : ''
+            }
             onClick={() => setView('list')}
           >
             List
@@ -258,341 +423,412 @@ function Tasks() {
 
       </div>
 
-      {/* Loading */}
+      {/* ==========================================
+          EMPTY STATE
+      ========================================== */}
 
-      {loading && (
-        <div className="loading-message">
-          Loading tasks...
+      {tasks.length === 0 && (
+        <div className="content-section">
+
+          <p>
+            No tasks found.
+          </p>
+
+          <Button
+            onClick={() => {
+              setError('')
+              setShowAddModal(true)
+            }}
+          >
+            + Add First Task
+          </Button>
+
         </div>
       )}
 
-      {/* Kanban Board */}
+      {/* ==========================================
+          KANBAN BOARD
+      ========================================== */}
 
-      {!loading && view === 'board' && (
+      {tasks.length > 0 &&
+        view === 'board' && (
 
-        <div className="kanban-board">
+          <div className="kanban-board">
 
-          {columns.map((column) => (
+            {columns.map((column) => (
 
-            <section
-              className="kanban-column"
-              key={column.key}
-            >
+              <section
+                className="kanban-column"
+                key={column.key}
+              >
 
-              <div className="kanban-column-header">
+                {/* COLUMN HEADER */}
 
-                <div>
-                  <h3>{column.title}</h3>
+                <div className="kanban-column-header">
 
-                  <span>
-                    {groupedTasks[column.key].length}
-                  </span>
+                  <div>
+
+                    <h3>
+                      {column.title}
+                    </h3>
+
+                    <span>
+                      {
+                        groupedTasks[
+                          column.key
+                        ]?.length || 0
+                      }
+                    </span>
+
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError('')
+                      setShowAddModal(true)
+                    }}
+                  >
+                    +
+                  </button>
+
                 </div>
 
-                <button
-                  onClick={() => {
-                    setNewTask((previous) => ({
-                      ...previous,
-                      status: column.key,
-                    }))
+                {/* TASKS */}
 
-                    setShowModal(true)
-                  }}
-                >
-                  +
-                </button>
+                <div className="kanban-tasks">
 
-              </div>
+                  {groupedTasks[
+                    column.key
+                  ]?.map((task) => (
 
-              <div className="kanban-tasks">
+                    <article
+                      className="task-card"
+                      key={task._id}
+                    >
 
-                {groupedTasks[column.key].map((task) => (
+                      {/* TOP */}
 
-                  <article
-                    className="task-card"
-                    key={task._id}
-                  >
+                      <div className="task-card-top">
 
-                    <div className="task-card-top">
+                        <span
+                          className={`priority priority-${(
+                            task.priority ||
+                            'Medium'
+                          ).toLowerCase()}`}
+                        >
+                          {task.priority}
+                        </span>
 
-                      <span
-                        className={`priority priority-${task.priority.toLowerCase()}`}
-                      >
-                        {task.priority}
-                      </span>
+                        <button
+                          type="button"
+                          className="more-button"
+                          onClick={() =>
+                            setEditingTask(task)
+                          }
+                        >
+                          ...
+                        </button>
 
-                      <button
-                        className="more-button"
-                        onClick={() =>
-                          handleDeleteTask(task._id)
-                        }
-                      >
-                        •••
-                      </button>
-
-                    </div>
-
-                    <h4>{task.title}</h4>
-
-                    <p>{task.description}</p>
-
-                    <div className="task-card-meta">
-
-                      <span>
-                        {task.department}
-                      </span>
-
-                      <span>
-                        Due{' '}
-                        {new Date(
-                          task.dueDate,
-                        ).toLocaleDateString()}
-                      </span>
-
-                    </div>
-
-                    <div className="task-assignee">
-
-                      <div className="mini-avatar">
-                        {task.assignee
-                          .split(' ')
-                          .map((name) => name[0])
-                          .join('')
-                        }
                       </div>
 
-                      <span>
-                        {task.assignee}
-                      </span>
+                      {/* TITLE */}
 
-                    </div>
+                      <h4>
+                        {task.title}
+                      </h4>
 
-                    <select
-                      value={task.status}
-                      onChange={(event) =>
-                        handleStatusChange(
-                          task,
-                          event.target.value,
-                        )
-                      }
-                    >
-                      {columns.map((status) => (
-                        <option
-                          key={status.key}
-                          value={status.key}
-                        >
-                          {status.title}
-                        </option>
-                      ))}
-                    </select>
+                      {/* DESCRIPTION */}
 
-                  </article>
+                      <p>
+                        {task.description}
+                      </p>
 
-                ))}
+                      {/* META */}
 
-              </div>
+                      <div className="task-card-meta">
 
-            </section>
+                        <span>
+                          {task.department}
+                        </span>
 
-          ))}
+                        <span>
+                          Due{' '}
+                          {formatDate(
+                            task.dueDate
+                          )}
+                        </span>
 
-        </div>
+                      </div>
 
-      )}
+                      {/* ASSIGNEE */}
 
-      {/* List */}
+                      <div className="task-assignee">
 
-      {!loading && view === 'list' && (
+                        <div className="mini-avatar">
+                          {getInitials(
+                            task.assignee
+                          )}
+                        </div>
 
-        <div className="task-list">
+                        <span>
+                          {task.assignee}
+                        </span>
 
-          <div className="task-list-header">
-            <span>Task</span>
-            <span>Department</span>
-            <span>Assignee</span>
-            <span>Priority</span>
-            <span>Status</span>
-            <span>Due date</span>
-          </div>
+                      </div>
 
-          {tasks.map((task) => (
+                      {/* STATUS CONTROL */}
 
-            <div
-              className="task-list-row"
-              key={task._id}
-            >
-
-              <div>
-                <strong>{task.title}</strong>
-                <small>{task.description}</small>
-              </div>
-
-              <span>{task.department}</span>
-
-              <span>{task.assignee}</span>
-
-              <span
-                className={`priority priority-${task.priority.toLowerCase()}`}
-              >
-                {task.priority}
-              </span>
-
-              <span className="task-status">
-                {task.status}
-              </span>
-
-              <span>
-                {new Date(
-                  task.dueDate,
-                ).toLocaleDateString()}
-              </span>
-
-            </div>
-
-          ))}
-
-        </div>
-
-      )}
-
-      {/* Add Task Modal */}
-
-      {showModal && (
-
-        <div className="modal-overlay">
-
-          <div className="modal">
-
-            <div className="modal-header">
-
-              <div>
-                <h2>Add Task</h2>
-                <p>Create a new task.</p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-              >
-                ×
-              </button>
-
-            </div>
-
-            <form onSubmit={handleAddTask}>
-
-              <div className="form-grid">
-
-                <label>
-                  Task title
-
-                  <input
-                    name="title"
-                    value={newTask.title}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </label>
-
-                <label>
-                  Description
-
-                  <input
-                    name="description"
-                    value={newTask.description}
-                    onChange={handleInputChange}
-                  />
-                </label>
-
-                <label>
-                  Assignee
-
-                  <input
-                    name="assignee"
-                    value={newTask.assignee}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </label>
-
-                <label>
-                  Department
-
-                  <input
-                    name="department"
-                    value={newTask.department}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </label>
-
-                <label>
-                  Priority
-
-                  <select
-                    name="priority"
-                    value={newTask.priority}
-                    onChange={handleInputChange}
-                  >
-                    <option value="High">High</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
-                  </select>
-                </label>
-
-                <label>
-                  Status
-
-                  <select
-                    name="status"
-                    value={newTask.status}
-                    onChange={handleInputChange}
-                  >
-                    {columns.map((column) => (
-                      <option
-                        key={column.key}
-                        value={column.key}
+                      <div
+                        style={{
+                          marginTop: '12px',
+                        }}
                       >
-                        {column.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
 
-                <label>
-                  Due date
+                        <select
+                          value={task.status}
+                          onChange={(event) =>
+                            handleStatusChange(
+                              task._id,
+                              event.target.value
+                            )
+                          }
+                        >
 
-                  <input
-                    type="date"
-                    name="dueDate"
-                    value={newTask.dueDate}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </label>
+                          <option value="To Do">
+                            To Do
+                          </option>
 
-              </div>
+                          <option value="In Progress">
+                            In Progress
+                          </option>
 
-              <div className="modal-actions">
+                          <option value="Pending">
+                            Pending
+                          </option>
 
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                >
-                  Cancel
-                </button>
+                          <option value="Completed">
+                            Completed
+                          </option>
 
-                <button type="submit">
-                  Add Task
-                </button>
+                        </select>
 
-              </div>
+                      </div>
 
-            </form>
+                      {/* EDIT / DELETE */}
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '8px',
+                          marginTop: '10px',
+                        }}
+                      >
+
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
+                            setEditingTask(task)
+                          }
+                        >
+                          Edit
+                        </Button>
+
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
+                            handleDeleteTask(
+                              task._id
+                            )
+                          }
+                        >
+                          Delete
+                        </Button>
+
+                      </div>
+
+                    </article>
+
+                  ))}
+
+                </div>
+
+              </section>
+
+            ))}
 
           </div>
+        )}
 
-        </div>
+      {/* ==========================================
+          LIST VIEW
+      ========================================== */}
+
+      {tasks.length > 0 &&
+        view === 'list' && (
+
+          <div className="task-list">
+
+            <div className="task-list-header">
+
+              <span>Task</span>
+              <span>Department</span>
+              <span>Assignee</span>
+              <span>Priority</span>
+              <span>Status</span>
+              <span>Due date</span>
+
+            </div>
+
+            {tasks.map((task) => (
+
+              <div
+                className="task-list-row"
+                key={task._id}
+              >
+
+                {/* TASK */}
+
+                <div>
+
+                  <strong>
+                    {task.title}
+                  </strong>
+
+                  <small>
+                    {task.description}
+                  </small>
+
+                </div>
+
+                {/* DEPARTMENT */}
+
+                <span>
+                  {task.department}
+                </span>
+
+                {/* ASSIGNEE */}
+
+                <span>
+                  {task.assignee}
+                </span>
+
+                {/* PRIORITY */}
+
+                <span
+                  className={`priority priority-${(
+                    task.priority ||
+                    'Medium'
+                  ).toLowerCase()}`}
+                >
+                  {task.priority}
+                </span>
+
+                {/* STATUS */}
+
+                <select
+                  value={task.status}
+                  onChange={(event) =>
+                    handleStatusChange(
+                      task._id,
+                      event.target.value
+                    )
+                  }
+                >
+
+                  <option value="To Do">
+                    To Do
+                  </option>
+
+                  <option value="In Progress">
+                    In Progress
+                  </option>
+
+                  <option value="Pending">
+                    Pending
+                  </option>
+
+                  <option value="Completed">
+                    Completed
+                  </option>
+
+                </select>
+
+                {/* DATE */}
+
+                <span>
+                  {formatDate(task.dueDate)}
+                </span>
+
+                {/* ACTIONS */}
+
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '6px',
+                  }}
+                >
+
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      setEditingTask(task)
+                    }
+                  >
+                    Edit
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      handleDeleteTask(
+                        task._id
+                      )
+                    }
+                  >
+                    Delete
+                  </Button>
+
+                </div>
+
+              </div>
+
+            ))}
+
+          </div>
+        )}
+
+      {/* ==========================================
+          ADD TASK MODAL
+      ========================================== */}
+
+      {showAddModal && (
+
+        <AddTaskModal
+          onClose={() =>
+            setShowAddModal(false)
+          }
+
+          onCreate={handleCreateTask}
+        />
+
+      )}
+
+      {/* ==========================================
+          EDIT TASK MODAL
+      ========================================== */}
+
+      {editingTask && (
+
+        <EditTaskModal
+          task={editingTask}
+
+          onClose={() =>
+            setEditingTask(null)
+          }
+
+          onUpdate={handleUpdateTask}
+        />
 
       )}
 
