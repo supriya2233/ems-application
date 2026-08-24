@@ -10,12 +10,25 @@ function RecentEmployees() {
     const loadEmployees = async () => {
       try {
         setLoading(true)
+        setError('')
 
         const data = await getEmployees()
 
-        setEmployees(data)
+        // Show the most recently created employees first.
+        const recentEmployees = [...data]
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt || 0) -
+              new Date(a.createdAt || 0)
+          )
+          .slice(0, 4)
+
+        setEmployees(recentEmployees)
       } catch (error) {
-        setError(error.message)
+        setError(
+          error.message ||
+            'Failed to load recent employees'
+        )
       } finally {
         setLoading(false)
       }
@@ -24,19 +37,32 @@ function RecentEmployees() {
     loadEmployees()
   }, [])
 
-  const recentEmployees = employees.slice(0, 4)
+  const getInitial = (name = '') => {
+    return name
+      .trim()
+      .charAt(0)
+      .toUpperCase()
+  }
 
   return (
     <section className="dashboard-panel">
 
+      {/* ==========================================
+          HEADER
+      ========================================== */}
+
       <div className="dashboard-panel-header">
 
         <div>
-          <h2>Recent Employees</h2>
+
+          <h2>
+            Recent Employees
+          </h2>
 
           <p>
             Recently added employees
           </p>
+
         </div>
 
         <a
@@ -48,61 +74,96 @@ function RecentEmployees() {
 
       </div>
 
+
+      {/* ==========================================
+          LOADING
+      ========================================== */}
+
       {loading && (
-        <p>Loading employees...</p>
+        <div className="recent-employees-list">
+          <p>Loading employees...</p>
+        </div>
       )}
+
+
+      {/* ==========================================
+          ERROR
+      ========================================== */}
 
       {!loading && error && (
-        <p>
-          Failed to load employees: {error}
-        </p>
-      )}
-
-      {!loading && !error && employees.length === 0 && (
-        <p>
-          No employees found.
-        </p>
-      )}
-
-      {!loading && !error && employees.length > 0 && (
-
         <div className="recent-employees-list">
-
-          {recentEmployees.map((employee) => (
-
-            <div
-              className="recent-employee"
-              key={employee._id}
-            >
-
-              <div className="employee-avatar">
-                {employee.initials ||
-                  employee.name.charAt(0)}
-              </div>
-
-              <div className="employee-information">
-
-                <h3>
-                  {employee.name}
-                </h3>
-
-                <p>
-                  {employee.role} · {employee.department}
-                </p>
-
-              </div>
-
-              <span className="employee-status">
-                {employee.status}
-              </span>
-
-            </div>
-
-          ))}
-
+          <p>{error}</p>
         </div>
-
       )}
+
+
+      {/* ==========================================
+          EMPTY STATE
+      ========================================== */}
+
+      {!loading &&
+        !error &&
+        employees.length === 0 && (
+          <div className="recent-employees-list">
+            <p>No employees found.</p>
+          </div>
+        )}
+
+
+      {/* ==========================================
+          EMPLOYEE LIST
+      ========================================== */}
+
+      {!loading &&
+        !error &&
+        employees.length > 0 && (
+
+          <div className="recent-employees-list">
+
+            {employees.map((employee) => (
+
+              <div
+                className="recent-employee"
+                key={employee._id}
+              >
+
+                {/* AVATAR */}
+
+                <div className="employee-avatar">
+                  {getInitial(employee.name)}
+                </div>
+
+
+                {/* INFORMATION */}
+
+                <div className="employee-information">
+
+                  <h3>
+                    {employee.name}
+                  </h3>
+
+                  <p>
+                    {employee.role || 'Employee'}
+                    {' · '}
+                    {employee.department || 'Unassigned'}
+                  </p>
+
+                </div>
+
+
+                {/* STATUS */}
+
+                <span className="employee-status">
+                  {employee.status || 'Active'}
+                </span>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        )}
 
     </section>
   )
