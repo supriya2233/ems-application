@@ -1,21 +1,56 @@
+import { useEffect, useState } from 'react'
+
 import StatCard from '../components/common/StatCard'
 import RecentEmployees from '../components/dashboard/RecentEmployees'
 import DepartmentOverview from '../components/dashboard/DepartmentOverview'
 import TaskOverview from '../components/dashboard/TaskOverview'
+import { getDashboard } from '../services/dashboardService'
 
 function Dashboard() {
+  const [dashboard, setDashboard] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        setLoading(true)
+
+        const data = await getDashboard()
+
+        setDashboard(data)
+      } catch (error) {
+        setError(error.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadDashboard()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="dashboard-page">
+        <p>Loading dashboard...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-page">
+        <p>Failed to load dashboard: {error}</p>
+      </div>
+    )
+  }
 
   return (
     <div className="dashboard-page">
 
-      {/* =================================================
-          DASHBOARD INTRO
-      ================================================= */}
-
       <section className="dashboard-welcome">
 
         <div>
-
           <p className="dashboard-eyebrow">
             Organization Overview
           </p>
@@ -27,80 +62,65 @@ function Dashboard() {
           <p className="dashboard-description">
             Overview of your organization's employees and activities.
           </p>
-
         </div>
 
-
         <div className="dashboard-date">
-
           <span>
             Today
           </span>
 
           <strong>
-            11 Aug 2026
+            {new Date().toLocaleDateString('en-IN', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            })}
           </strong>
-
         </div>
 
       </section>
-
-
-      {/* =================================================
-          STATISTICS
-      ================================================= */}
 
       <section className="dashboard-stats">
 
         <StatCard
           title="Total Employees"
-          value="24"
-          description="+4 this month"
+          value={dashboard.employees.total}
+          description={`${dashboard.employees.active} currently active`}
         />
 
         <StatCard
           title="Active Employees"
-          value="21"
-          description="87.5% of total"
+          value={dashboard.employees.active}
+          description={`${dashboard.employees.onLeave} on leave`}
         />
 
         <StatCard
           title="Departments"
-          value="6"
+          value={dashboard.departments.total}
           description="Across organization"
         />
 
         <StatCard
           title="Total Tasks"
-          value="42"
-          description="12 pending"
-          warning
+          value={dashboard.tasks.total}
+          description={`${dashboard.tasks.pending} pending`}
+          warning={dashboard.tasks.pending > 0}
         />
 
       </section>
 
-
-      {/* =================================================
-          LOWER DASHBOARD
-      ================================================= */}
-
       <section className="dashboard-grid">
 
         <div>
-
           <RecentEmployees />
-
         </div>
 
-
         <div>
-
           <DepartmentOverview />
 
           <div style={{ marginTop: '12px' }}>
             <TaskOverview />
           </div>
-
         </div>
 
       </section>

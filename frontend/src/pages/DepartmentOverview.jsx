@@ -9,8 +9,6 @@ function DepartmentOverview() {
   useEffect(() => {
     const loadDepartments = async () => {
       try {
-        setLoading(true)
-
         const data = await getDepartments()
 
         setDepartments(data)
@@ -40,23 +38,24 @@ function DepartmentOverview() {
       </div>
 
       {loading && (
-        <p>Loading departments...</p>
+        <div className="dashboard-message">
+          Loading departments...
+        </div>
       )}
 
-      {!loading && error && (
-        <p>
-          Failed to load departments: {error}
-        </p>
+      {error && (
+        <div className="dashboard-message">
+          {error}
+        </div>
       )}
 
       {!loading && !error && departments.length === 0 && (
-        <p>
+        <div className="dashboard-message">
           No departments found.
-        </p>
+        </div>
       )}
 
       {!loading && !error && departments.length > 0 && (
-
         <div className="department-list">
 
           {departments.map((department) => {
@@ -64,9 +63,7 @@ function DepartmentOverview() {
             const percentage =
               department.employees > 0
                 ? Math.round(
-                    (department.active /
-                      department.employees) *
-                      100
+                    (department.active / department.employees) * 100
                   )
                 : 0
 
@@ -104,7 +101,6 @@ function DepartmentOverview() {
           })}
 
         </div>
-
       )}
 
     </section>

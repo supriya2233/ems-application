@@ -9,11 +9,10 @@ function RecentEmployees() {
   useEffect(() => {
     const loadEmployees = async () => {
       try {
-        setLoading(true)
-
         const data = await getEmployees()
 
-        setEmployees(data)
+        // Show the most recently added employees first
+        setEmployees(data.slice(0, 4))
       } catch (error) {
         setError(error.message)
       } finally {
@@ -23,8 +22,6 @@ function RecentEmployees() {
 
     loadEmployees()
   }, [])
-
-  const recentEmployees = employees.slice(0, 4)
 
   return (
     <section className="dashboard-panel">
@@ -49,26 +46,27 @@ function RecentEmployees() {
       </div>
 
       {loading && (
-        <p>Loading employees...</p>
+        <div className="dashboard-message">
+          Loading employees...
+        </div>
       )}
 
-      {!loading && error && (
-        <p>
-          Failed to load employees: {error}
-        </p>
+      {error && (
+        <div className="dashboard-message">
+          {error}
+        </div>
       )}
 
       {!loading && !error && employees.length === 0 && (
-        <p>
+        <div className="dashboard-message">
           No employees found.
-        </p>
+        </div>
       )}
 
       {!loading && !error && employees.length > 0 && (
-
         <div className="recent-employees-list">
 
-          {recentEmployees.map((employee) => (
+          {employees.map((employee) => (
 
             <div
               className="recent-employee"
@@ -77,7 +75,12 @@ function RecentEmployees() {
 
               <div className="employee-avatar">
                 {employee.initials ||
-                  employee.name.charAt(0)}
+                  employee.name
+                    .split(' ')
+                    .map((part) => part[0])
+                    .join('')
+                    .slice(0, 2)
+                    .toUpperCase()}
               </div>
 
               <div className="employee-information">
@@ -101,7 +104,6 @@ function RecentEmployees() {
           ))}
 
         </div>
-
       )}
 
     </section>
