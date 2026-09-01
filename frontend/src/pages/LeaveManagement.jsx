@@ -1,397 +1,1201 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  leaveBalances,
-  leaveRequests,
-  leaveCalendar,
-} from '../data/leaves'
+  getLeaves,
+  createLeave,
+  updateLeave,
+  deleteLeave,
+} from '../services/leaveService'
+
+const leaveTypes = [
+  'Annual',
+  'Casual',
+  'Medical',
+  'Other',
+]
+
+const statusOptions = [
+  'All',
+  'Pending',
+  'Approved',
+  'Rejected',
+]
 
 function LeaveManagement() {
-  const [statusFilter, setStatusFilter] = useState('All')
-  const [typeFilter, setTypeFilter] = useState('All')
-  const [search, setSearch] = useState('')
-  const [showModal, setShowModal] = useState(false)
+  const [leaves, setLeaves] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  const filteredRequests = useMemo(() => {
-    return leaveRequests.filter((request) => {
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] =
+    useState('All')
+  const [typeFilter, setTypeFilter] =
+    useState('All')
+
+  const [showModal, setShowModal] =
+    useState(false)
+
+  const [saving, setSaving] = useState(false)
+
+  const [form, setForm] = useState({
+    employeeId: '',
+    employee: '',
+    department: '',
+    type: 'Annual',
+    from: '',
+    to: '',
+    days: 1,
+    reason: '',
+    status: 'Pending',
+  })
+
+  // ==========================================
+  // LOAD LEAVES
+  // ==========================================
+
+  const loadLeaves = async () => {
+    try {
+      setLoading(true)
+      setError('')
+
+      const data = await getLeaves()
+
+      setLeaves(data)
+    } catch (error) {
+      setError(
+        error.message ||
+          'Failed to load leave requests',
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadLeaves()
+  }, [])
+
+  // ==========================================
+  // DATE HELPERS
+  // ==========================================
+
+  const formatDate = (date) => {
+    if (!date) {
+      return '—'
+    }
+
+    return new Date(date).toLocaleDateString(
+      'en-IN',
+      {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      },
+    )
+  }
+
+  const calculateDays = (from, to) => {
+    if (!from || !to) {
+      return 1
+    }
+
+    const start = new Date(from)
+    const end = new Date(to)
+
+    if (
+      Number.isNaN(start.getTime()) ||
+      Number.isNaN(end.getTime())
+    ) {
+      return 1
+    }
+
+    const difference =
+      end.getTime() - start.getTime()
+
+    const days =
+      Math.floor(
+        difference /
+          (1000 * 60 * 60 * 24),
+      ) + 1
+
+    return Math.max(days, 1)
+  }
+
+  // ==========================================
+  // FILTERED LEAVES
+  // ==========================================
+
+  const filteredLeaves = useMemo(() => {
+    const searchValue =
+      search.trim().toLowerCase()
+
+    return leaves.filter((leave) => {
+      const matchesSearch =
+        !searchValue ||
+        leave.employee
+          ?.toLowerCase()
+          .includes(searchValue) ||
+        leave.department
+          ?.toLowerCase()
+          .includes(searchValue) ||
+        leave.reason
+          ?.toLowerCase()
+          .includes(searchValue)
+
       const matchesStatus =
-        statusFilter === 'All' || request.status === statusFilter
+        statusFilter === 'All' ||
+        leave.status === statusFilter
 
       const matchesType =
-        typeFilter === 'All' || request.type === typeFilter
+        typeFilter === 'All' ||
+        leave.type === typeFilter
 
-      const matchesSearch =
-        request.employee.toLowerCase().includes(search.toLowerCase())
-
-      return matchesStatus && matchesType && matchesSearch
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesType
+      )
     })
-  }, [statusFilter, typeFilter, search])
+  }, [
+    leaves,
+    search,
+    statusFilter,
+    typeFilter,
+  ])
 
-  const totalEntitlement = leaveBalances.reduce(
-    (sum, leave) => sum + leave.total,
-    0
-  )
+  // ==========================================
+  // SUMMARY
+  // ==========================================
 
-  const totalUsed = leaveBalances.reduce(
-    (sum, leave) => sum + leave.used,
-    0
-  )
+  const summary = useMemo(() => {
+    const total = leaves.length
 
-  const totalRemaining = leaveBalances.reduce(
-    (sum, leave) => sum + leave.remaining,
-    0
-  )
+    const pending = leaves.filter(
+      (leave) =>
+        leave.status === 'Pending',
+    ).length
 
-  const pendingCount = leaveRequests.filter(
-    (request) => request.status === 'Pending'
-  ).length
+    const approved = leaves.filter(
+      (leave) =>
+        leave.status === 'Approved',
+    ).length
+
+    const rejected = leaves.filter(
+      (leave) =>
+        leave.status === 'Rejected',
+    ).length
+
+    const totalDays = leaves.reduce(
+      (sum, leave) =>
+        sum + Number(leave.days || 0),
+      0,
+    )
+
+    return {
+      total,
+      pending,
+      approved,
+      rejected,
+      totalDays,
+    }
+  }, [leaves])
+
+  // ==========================================
+  // UPCOMING LEAVE
+  // ==========================================
+
+  const upcomingLeaves = useMemo(() => {
+    const today = new Date()
+
+    today.setHours(0, 0, 0, 0)
+
+    return [...leaves]
+      .filter((leave) => {
+        if (!leave.from) {
+          return false
+        }
+
+        const startDate =
+          new Date(leave.from)
+
+        return (
+          startDate >= today &&
+          leave.status === 'Approved'
+        )
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.from) -
+          new Date(b.from),
+      )
+      .slice(0, 5)
+  }, [leaves])
+
+  // ==========================================
+  // FORM
+  // ==========================================
+
+  const handleFormChange = (event) => {
+    const { name, value } =
+      event.target
+
+    setForm((previous) => {
+      const updated = {
+        ...previous,
+        [name]: value,
+      }
+
+      if (
+        name === 'from' ||
+        name === 'to'
+      ) {
+        updated.days =
+          calculateDays(
+            name === 'from'
+              ? value
+              : previous.from,
+            name === 'to'
+              ? value
+              : previous.to,
+          )
+      }
+
+      return updated
+    })
+  }
+
+  // ==========================================
+  // OPEN MODAL
+  // ==========================================
+
+  const openRequestModal = () => {
+    setForm({
+      employeeId: '',
+      employee: '',
+      department: '',
+      type: 'Annual',
+      from: '',
+      to: '',
+      days: 1,
+      reason: '',
+      status: 'Pending',
+    })
+
+    setShowModal(true)
+  }
+
+  // ==========================================
+  // CREATE
+  // ==========================================
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+
+    try {
+      setSaving(true)
+      setError('')
+
+      const created =
+        await createLeave({
+          ...form,
+          days: Number(form.days),
+          status: 'Pending',
+        })
+
+      setLeaves((previous) => [
+        created,
+        ...previous,
+      ])
+
+      setShowModal(false)
+    } catch (error) {
+      setError(
+        error.message ||
+          'Failed to submit leave request',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ==========================================
+  // APPROVE / REJECT
+  // ==========================================
+
+  const handleStatusChange = async (
+    id,
+    status,
+  ) => {
+    try {
+      setError('')
+
+      const updated =
+        await updateLeave(id, {
+          status,
+        })
+
+      setLeaves((previous) =>
+        previous.map((leave) =>
+          leave._id === id
+            ? updated
+            : leave,
+        ),
+      )
+    } catch (error) {
+      setError(
+        error.message ||
+          'Failed to update leave request',
+      )
+    }
+  }
+
+  const handleApprove = (id) => {
+    handleStatusChange(
+      id,
+      'Approved',
+    )
+  }
+
+  const handleReject = (id) => {
+    handleStatusChange(
+      id,
+      'Rejected',
+    )
+  }
+
+  // ==========================================
+  // DELETE
+  // ==========================================
+
+  const handleDelete = async (id) => {
+    const confirmed =
+      window.confirm(
+        'Are you sure you want to delete this leave request?',
+      )
+
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      setError('')
+
+      await deleteLeave(id)
+
+      setLeaves((previous) =>
+        previous.filter(
+          (leave) =>
+            leave._id !== id,
+        ),
+      )
+    } catch (error) {
+      setError(
+        error.message ||
+          'Failed to delete leave request',
+      )
+    }
+  }
+
+  // ==========================================
+  // STATUS CLASS
+  // ==========================================
+
+  const getStatusClass = (status) => {
+    return `leave-status leave-status-${(
+      status || ''
+    ).toLowerCase()}`
+  }
+
+  // ==========================================
+  // LOADING
+  // ==========================================
+
+  if (loading) {
+    return (
+      <div className="module-page">
+
+        <div className="module-header">
+
+          <div>
+            <span className="module-eyebrow">
+              PEOPLE OPERATIONS
+            </span>
+
+            <h1>
+              Leave Management
+            </h1>
+
+            <p>
+              Manage leave requests,
+              approvals and employee
+              leave activity.
+            </p>
+          </div>
+
+        </div>
+
+        <div className="content-section">
+          <p>
+            Loading leave requests...
+          </p>
+        </div>
+
+      </div>
+    )
+  }
 
   return (
-    <div className="module-page leave-page">
+    <div className="module-page">
 
-      {/* Page Header */}
+      {/* ======================================
+          HEADER
+      ====================================== */}
+
       <div className="module-header">
+
         <div>
-          <span className="module-eyebrow">WORKFORCE</span>
-          <h1>Leave Management</h1>
+
+          <span className="module-eyebrow">
+            PEOPLE OPERATIONS
+          </span>
+
+          <h1>
+            Leave Management
+          </h1>
+
           <p>
-            Manage employee leave balances, requests and upcoming absences.
+            Manage leave requests,
+            approvals and employee
+            leave activity.
           </p>
+
         </div>
 
         <button
           className="primary-button"
-          onClick={() => setShowModal(true)}
+          onClick={
+            openRequestModal
+          }
         >
           + Request Leave
         </button>
+
       </div>
 
-      {/* Summary Cards */}
-      <section className="leave-summary-grid">
 
-        <div className="leave-summary-card">
-          <span>Total Entitlement</span>
-          <strong>{totalEntitlement}</strong>
-          <small>Days available this year</small>
+      {/* ======================================
+          ERROR
+      ====================================== */}
+
+      {error && (
+        <div className="content-section">
+          <p>{error}</p>
+        </div>
+      )}
+
+
+      {/* ======================================
+          SUMMARY
+      ====================================== */}
+
+      <div className="stats-grid">
+
+        <div className="info-card">
+
+          <span>
+            Total Requests
+          </span>
+
+          <strong>
+            {summary.total}
+          </strong>
+
+          <small>
+            All leave requests
+          </small>
+
         </div>
 
-        <div className="leave-summary-card">
-          <span>Used</span>
-          <strong>{totalUsed}</strong>
-          <small>Days already used</small>
+
+        <div className="info-card">
+
+          <span>
+            Pending
+          </span>
+
+          <strong>
+            {summary.pending}
+          </strong>
+
+          <small>
+            Awaiting approval
+          </small>
+
         </div>
 
-        <div className="leave-summary-card">
-          <span>Remaining</span>
-          <strong>{totalRemaining}</strong>
-          <small>Days available</small>
+
+        <div className="info-card">
+
+          <span>
+            Approved
+          </span>
+
+          <strong>
+            {summary.approved}
+          </strong>
+
+          <small>
+            Approved requests
+          </small>
+
         </div>
 
-        <div className="leave-summary-card warning">
-          <span>Pending Requests</span>
-          <strong>{pendingCount}</strong>
-          <small>Awaiting approval</small>
+
+        <div className="info-card">
+
+          <span>
+            Total Days
+          </span>
+
+          <strong>
+            {summary.totalDays}
+          </strong>
+
+          <small>
+            Across all requests
+          </small>
+
         </div>
 
-      </section>
+      </div>
 
-      {/* Leave Balances */}
-      <section className="content-card">
-        <div className="section-heading">
+
+      {/* ======================================
+          FILTER TOOLBAR
+      ====================================== */}
+
+      <div className="content-section">
+
+        <div className="section-header">
+
           <div>
-            <h2>Leave Balance</h2>
-            <p>Current leave entitlement by category.</p>
+
+            <h2>
+              Leave Requests
+            </h2>
+
+            <p>
+              Review and manage employee
+              leave requests.
+            </p>
+
           </div>
+
         </div>
 
-        <div className="leave-balance-grid">
-          {leaveBalances.map((leave) => {
-            const percentage =
-              leave.total > 0
-                ? (leave.used / leave.total) * 100
-                : 0
 
-            return (
-              <div className="balance-item" key={leave.type}>
-
-                <div className="balance-top">
-                  <div>
-                    <strong>{leave.type}</strong>
-                    <span>
-                      {leave.used} used · {leave.remaining} remaining
-                    </span>
-                  </div>
-
-                  <b>{leave.total} days</b>
-                </div>
-
-                <div className="progress-track">
-                  <div
-                    className="progress-fill"
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
-
-              </div>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* Leave Requests */}
-      <section className="content-card">
-
-        <div className="section-heading">
-          <div>
-            <h2>Leave Requests</h2>
-            <p>Review and manage employee leave applications.</p>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="filter-bar">
+        <div className="filters">
 
           <input
-            type="text"
+            type="search"
             placeholder="Search employee..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(event) =>
+              setSearch(
+                event.target.value,
+              )
+            }
           />
 
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-          >
-            <option value="All">All Leave Types</option>
-            <option value="Annual">Annual</option>
-            <option value="Casual">Casual</option>
-            <option value="Medical">Medical</option>
-          </select>
 
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(event) =>
+              setStatusFilter(
+                event.target.value,
+              )
+            }
           >
-            <option value="All">All Status</option>
-            <option value="Pending">Pending</option>
-            <option value="Approved">Approved</option>
-            <option value="Rejected">Rejected</option>
+
+            {statusOptions.map(
+              (status) => (
+                <option
+                  key={status}
+                  value={status}
+                >
+                  {status}
+                </option>
+              ),
+            )}
+
+          </select>
+
+
+          <select
+            value={typeFilter}
+            onChange={(event) =>
+              setTypeFilter(
+                event.target.value,
+              )
+            }
+          >
+
+            <option value="All">
+              All Types
+            </option>
+
+            {leaveTypes.map(
+              (type) => (
+                <option
+                  key={type}
+                  value={type}
+                >
+                  {type}
+                </option>
+              ),
+            )}
+
           </select>
 
         </div>
 
-        {/* Requests */}
-        {filteredRequests.length > 0 ? (
-          <div className="leave-table-wrapper">
 
-            <table className="leave-table">
+        {/* ====================================
+            REQUEST TABLE
+        ==================================== */}
 
-              <thead>
+        <div className="ui-table-wrapper">
+
+          <table className="ui-table">
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  Employee
+                </th>
+
+                <th>
+                  Type
+                </th>
+
+                <th>
+                  From
+                </th>
+
+                <th>
+                  To
+                </th>
+
+                <th>
+                  Days
+                </th>
+
+                <th>
+                  Reason
+                </th>
+
+                <th>
+                  Status
+                </th>
+
+                <th>
+                  Actions
+                </th>
+
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              {filteredLeaves.length ===
+              0 ? (
+
                 <tr>
-                  <th>Employee</th>
-                  <th>Leave Type</th>
-                  <th>Duration</th>
-                  <th>Days</th>
-                  <th>Reason</th>
-                  <th>Status</th>
-                  <th>Action</th>
+
+                  <td
+                    colSpan="8"
+                    className="ui-table-empty"
+                  >
+                    No leave requests
+                    found.
+                  </td>
+
                 </tr>
-              </thead>
 
-              <tbody>
-                {filteredRequests.map((request) => (
-                  <tr key={request.id}>
+              ) : (
 
-                    <td>
-                      <div className="employee-cell">
-                        <div className="employee-avatar">
-                          {request.employee.charAt(0)}
-                        </div>
+                filteredLeaves.map(
+                  (leave) => (
 
-                        <div>
-                          <strong>{request.employee}</strong>
-                          <span>{request.department}</span>
-                        </div>
-                      </div>
-                    </td>
+                    <tr
+                      key={leave._id}
+                    >
 
-                    <td>{request.type}</td>
+                      <td>
 
-                    <td>
-                      <span>
-                        {request.from} → {request.to}
-                      </span>
-                    </td>
+                        <strong>
+                          {leave.employee}
+                        </strong>
 
-                    <td>{request.days}</td>
+                        <small>
+                          {leave.department}
+                        </small>
 
-                    <td>{request.reason}</td>
+                      </td>
 
-                    <td>
-                      <span
-                        className={`status-badge status-${request.status.toLowerCase()}`}
-                      >
-                        {request.status}
-                      </span>
-                    </td>
 
-                    <td>
-                      {request.status === 'Pending' ? (
-                        <div className="action-buttons">
-                          <button className="approve-button">
-                            Approve
+                      <td>
+                        {leave.type}
+                      </td>
+
+
+                      <td>
+                        {formatDate(
+                          leave.from,
+                        )}
+                      </td>
+
+
+                      <td>
+                        {formatDate(
+                          leave.to,
+                        )}
+                      </td>
+
+
+                      <td>
+                        {leave.days}
+                      </td>
+
+
+                      <td>
+                        {leave.reason}
+                      </td>
+
+
+                      <td>
+
+                        <span
+                          className={getStatusClass(
+                            leave.status,
+                          )}
+                        >
+                          {leave.status}
+                        </span>
+
+                      </td>
+
+
+                      <td>
+
+                        <div className="leave-actions">
+
+                          {leave.status ===
+                            'Pending' && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleApprove(
+                                    leave._id,
+                                  )
+                                }
+                              >
+                                Approve
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleReject(
+                                    leave._id,
+                                  )
+                                }
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleDelete(
+                                leave._id,
+                              )
+                            }
+                          >
+                            Delete
                           </button>
 
-                          <button className="reject-button">
-                            Reject
-                          </button>
                         </div>
-                      ) : (
-                        <span className="muted-text">No action</span>
-                      )}
-                    </td>
 
-                  </tr>
-                ))}
-              </tbody>
+                      </td>
 
-            </table>
+                    </tr>
 
-          </div>
-        ) : (
-          <div className="empty-state">
-            <div className="empty-state-icon">✓</div>
-            <h3>No leave requests found</h3>
+                  ),
+                )
+
+              )}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+
+      {/* ======================================
+          UPCOMING LEAVE
+      ====================================== */}
+
+      <div className="content-section">
+
+        <div className="section-header">
+
+          <div>
+
+            <h2>
+              Upcoming Leave
+            </h2>
+
             <p>
-              Try changing your search or filter options.
+              Approved upcoming employee
+              leave.
             </p>
+
           </div>
+
+        </div>
+
+
+        {upcomingLeaves.length === 0 ? (
+
+          <p>
+            No upcoming approved leave.
+          </p>
+
+        ) : (
+
+          <div className="upcoming-leave-list">
+
+            {upcomingLeaves.map(
+              (leave) => (
+
+                <div
+                  className="upcoming-leave-item"
+                  key={leave._id}
+                >
+
+                  <div>
+
+                    <strong>
+                      {leave.employee}
+                    </strong>
+
+                    <span>
+                      {leave.department}
+                    </span>
+
+                  </div>
+
+                  <div>
+
+                    <strong>
+                      {formatDate(
+                        leave.from,
+                      )}
+                    </strong>
+
+                    <span>
+                      {leave.days}{' '}
+                      {leave.days === 1
+                        ? 'day'
+                        : 'days'}
+                    </span>
+
+                  </div>
+
+                  <span>
+                    {leave.type}
+                  </span>
+
+                </div>
+
+              ),
+            )}
+
+          </div>
+
         )}
 
-      </section>
+      </div>
 
-      {/* Upcoming Leave Calendar */}
-      <section className="content-card">
 
-        <div className="section-heading">
-          <div>
-            <h2>Upcoming Leave</h2>
-            <p>Employees currently scheduled to be away.</p>
-          </div>
-        </div>
+      {/* ======================================
+          REQUEST LEAVE MODAL
+      ====================================== */}
 
-        <div className="leave-calendar-list">
-          {leaveCalendar.map((item) => (
-            <div className="calendar-leave-item" key={item.id}>
-
-              <div className="calendar-date">
-                <strong>{item.day}</strong>
-                <span>{item.month}</span>
-              </div>
-
-              <div className="calendar-person">
-                <strong>{item.employee}</strong>
-                <span>{item.type} · {item.days} days</span>
-              </div>
-
-              <span className="calendar-department">
-                {item.department}
-              </span>
-
-            </div>
-          ))}
-        </div>
-
-      </section>
-
-      {/* Request Leave Modal */}
       {showModal && (
+
         <div
           className="modal-overlay"
-          onClick={() => setShowModal(false)}
+          onClick={() =>
+            setShowModal(false)
+          }
         >
+
           <div
-            className="leave-modal"
-            onClick={(e) => e.stopPropagation()}
+            className="modal"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
           >
 
             <div className="modal-header">
+
               <div>
-                <span className="module-eyebrow">LEAVE</span>
-                <h2>Request Leave</h2>
+
+                <span className="module-eyebrow">
+                  PEOPLE OPERATIONS
+                </span>
+
+                <h2>
+                  Request Leave
+                </h2>
+
               </div>
 
               <button
-                className="modal-close"
-                onClick={() => setShowModal(false)}
+                type="button"
+                onClick={() =>
+                  setShowModal(false)
+                }
               >
                 ×
               </button>
+
             </div>
 
-            <div className="modal-form">
 
-              <label>
-                Employee
-                <input
-                  type="text"
-                  placeholder="Employee name"
-                />
-              </label>
+            <form
+              onSubmit={handleSubmit}
+              className="leave-form"
+            >
 
-              <label>
-                Leave Type
-                <select>
-                  <option>Annual</option>
-                  <option>Casual</option>
-                  <option>Medical</option>
-                </select>
-              </label>
+              <div className="form-grid">
 
-              <div className="form-row">
+                <div>
 
-                <label>
-                  From
-                  <input type="date" />
-                </label>
+                  <label>
+                    Employee ID
+                  </label>
 
-                <label>
-                  To
-                  <input type="date" />
-                </label>
+                  <input
+                    name="employeeId"
+                    value={
+                      form.employeeId
+                    }
+                    onChange={
+                      handleFormChange
+                    }
+                    placeholder="EMP002"
+                    required
+                  />
+
+                </div>
+
+
+                <div>
+
+                  <label>
+                    Employee Name
+                  </label>
+
+                  <input
+                    name="employee"
+                    value={
+                      form.employee
+                    }
+                    onChange={
+                      handleFormChange
+                    }
+                    placeholder="Priya Sharma"
+                    required
+                  />
+
+                </div>
+
+
+                <div>
+
+                  <label>
+                    Department
+                  </label>
+
+                  <input
+                    name="department"
+                    value={
+                      form.department
+                    }
+                    onChange={
+                      handleFormChange
+                    }
+                    placeholder="Design"
+                    required
+                  />
+
+                </div>
+
+
+                <div>
+
+                  <label>
+                    Leave Type
+                  </label>
+
+                  <select
+                    name="type"
+                    value={form.type}
+                    onChange={
+                      handleFormChange
+                    }
+                  >
+
+                    {leaveTypes.map(
+                      (type) => (
+                        <option
+                          key={type}
+                          value={type}
+                        >
+                          {type}
+                        </option>
+                      ),
+                    )}
+
+                  </select>
+
+                </div>
+
+
+                <div>
+
+                  <label>
+                    From
+                  </label>
+
+                  <input
+                    type="date"
+                    name="from"
+                    value={
+                      form.from
+                    }
+                    onChange={
+                      handleFormChange
+                    }
+                    required
+                  />
+
+                </div>
+
+
+                <div>
+
+                  <label>
+                    To
+                  </label>
+
+                  <input
+                    type="date"
+                    name="to"
+                    value={
+                      form.to
+                    }
+                    onChange={
+                      handleFormChange
+                    }
+                    required
+                  />
+
+                </div>
+
+
+                <div>
+
+                  <label>
+                    Days
+                  </label>
+
+                  <input
+                    type="number"
+                    name="days"
+                    value={
+                      form.days
+                    }
+                    readOnly
+                  />
+
+                </div>
+
+
+                <div className="form-full">
+
+                  <label>
+                    Reason
+                  </label>
+
+                  <textarea
+                    name="reason"
+                    value={
+                      form.reason
+                    }
+                    onChange={
+                      handleFormChange
+                    }
+                    placeholder="Reason for leave..."
+                    rows="4"
+                    required
+                  />
+
+                </div>
 
               </div>
 
-              <label>
-                Reason
-                <textarea
-                  rows="4"
-                  placeholder="Enter reason for leave..."
-                />
-              </label>
 
-              <div className="modal-actions">
+              <div className="form-actions">
 
                 <button
-                  className="secondary-button"
-                  onClick={() => setShowModal(false)}
+                  type="button"
+                  onClick={() =>
+                    setShowModal(false)
+                  }
                 >
                   Cancel
                 </button>
 
                 <button
+                  type="submit"
                   className="primary-button"
-                  onClick={() => setShowModal(false)}
+                  disabled={saving}
                 >
-                  Submit Request
+                  {saving
+                    ? 'Submitting...'
+                    : 'Submit Request'}
                 </button>
 
               </div>
 
-            </div>
+            </form>
 
           </div>
+
         </div>
+
       )}
 
     </div>
