@@ -70,10 +70,7 @@ export const updateDepartment = async (req, res) => {
       await Department.findByIdAndUpdate(
         req.params.id,
         req.body,
-        {
-          new: true,
-          runValidators: true,
-        },
+        { returnDocument: 'after', runValidators: true },
       )
 
     if (!department) {

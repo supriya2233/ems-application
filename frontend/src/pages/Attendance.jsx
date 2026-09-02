@@ -7,6 +7,7 @@ import {
   updateAttendance,
   deleteAttendance,
 } from '../services/attendanceService'
+import { getEmployees } from '../services/employeeService'
 
 const statusOptions = [
   'All',
@@ -16,18 +17,10 @@ const statusOptions = [
   'WFH',
 ]
 
-const departmentOptions = [
-  'All Departments',
-  'Engineering',
-  'Design',
-  'Management',
-  'Human Resources',
-  'Finance',
-  'Marketing',
-]
-
 function Attendance() {
   const [attendance, setAttendance] = useState([])
+  const [employees, setEmployees] = useState([])
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -55,29 +48,41 @@ function Attendance() {
   })
 
   // ==========================================
-  // LOAD ATTENDANCE
+  // LOAD ATTENDANCE + EMPLOYEES
   // ==========================================
 
-  const loadAttendance = async () => {
-    try {
-      setLoading(true)
-      setError('')
-
-      const data = await getAttendance()
-
-      setAttendance(data)
-    } catch (error) {
-      setError(
-        error.message ||
-          'Failed to load attendance',
-      )
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    loadAttendance()
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        setError('')
+
+        const [
+          attendanceData,
+          employeeData,
+        ] = await Promise.all([
+          getAttendance(),
+          getEmployees(),
+        ])
+
+        setAttendance(attendanceData)
+        setEmployees(employeeData)
+      } catch (error) {
+        console.error(
+          'Failed to load attendance data:',
+          error,
+        )
+
+        setError(
+          error.message ||
+            'Failed to load attendance',
+        )
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
   }, [])
 
   // ==========================================
@@ -133,7 +138,10 @@ function Attendance() {
           ) === selectedDateString
         )
       })
-    }, [attendance, selectedDateString])
+    }, [
+      attendance,
+      selectedDateString,
+    ])
 
   // ==========================================
   // FILTERED RECORDS
@@ -166,6 +174,25 @@ function Attendance() {
     ])
 
   // ==========================================
+  // DEPARTMENTS
+  // ==========================================
+
+  const departmentOptions = useMemo(() => {
+    const departments =
+      employees
+        .map(
+          (employee) =>
+            employee.department,
+        )
+        .filter(Boolean)
+
+    return [
+      'All Departments',
+      ...new Set(departments),
+    ]
+  }, [employees])
+
+  // ==========================================
   // SUMMARY
   // ==========================================
 
@@ -196,6 +223,26 @@ function Attendance() {
         ).length,
     }
   }, [selectedDateAttendance])
+
+  // ==========================================
+  // STATUS VARIANT
+  // ==========================================
+
+  function getStatusVariant(status) {
+    if (status === 'Present') {
+      return 'success'
+    }
+
+    if (status === 'Late') {
+      return 'warning'
+    }
+
+    if (status === 'Absent') {
+      return 'danger'
+    }
+
+    return 'neutral'
+  }
 
   // ==========================================
   // TABLE COLUMNS
@@ -267,6 +314,7 @@ function Attendance() {
               )
             }
           >
+
             {statusOptions
               .filter(
                 (item) => item !== 'All',
@@ -279,6 +327,7 @@ function Attendance() {
                   {status}
                 </option>
               ))}
+
           </select>
 
           <button
@@ -319,6 +368,43 @@ function Attendance() {
   }
 
   // ==========================================
+  // EMPLOYEE CHANGE
+  // ==========================================
+
+  const handleEmployeeChange = (event) => {
+    const employeeId =
+      event.target.value
+
+    const selectedEmployee =
+      employees.find(
+        (employee) =>
+          employee.employeeId ===
+          employeeId,
+      )
+
+    if (!selectedEmployee) {
+      setForm((previous) => ({
+        ...previous,
+        employeeId: '',
+        employeeName: '',
+        department: '',
+      }))
+
+      return
+    }
+
+    setForm((previous) => ({
+      ...previous,
+      employeeId:
+        selectedEmployee.employeeId,
+      employeeName:
+        selectedEmployee.name,
+      department:
+        selectedEmployee.department,
+    }))
+  }
+
+  // ==========================================
   // FORM CHANGE
   // ==========================================
 
@@ -339,12 +425,39 @@ function Attendance() {
   const handleSubmit = async (event) => {
     event.preventDefault()
 
+    if (!form.employeeId) {
+      setError(
+        'Please select an employee.',
+      )
+
+      return
+    }
+
     try {
       setSaving(true)
       setError('')
 
       const created =
-        await createAttendance(form)
+        await createAttendance({
+          employeeId:
+            form.employeeId,
+
+          employeeName:
+            form.employeeName,
+
+          department:
+            form.department,
+
+          date: form.date,
+
+          status: form.status,
+
+          checkIn: form.checkIn,
+
+          checkOut: form.checkOut,
+
+          hours: form.hours,
+        })
 
       setAttendance((previous) => [
         created,
@@ -363,7 +476,7 @@ function Attendance() {
   }
 
   // ==========================================
-  // UPDATE
+  // UPDATE STATUS
   // ==========================================
 
   const handleStatusChange = async (
@@ -398,9 +511,10 @@ function Attendance() {
   // ==========================================
 
   const handleDelete = async (id) => {
-    const confirmed = window.confirm(
-      'Are you sure you want to delete this attendance record?',
-    )
+    const confirmed =
+      window.confirm(
+        'Are you sure you want to delete this attendance record?',
+      )
 
     if (!confirmed) {
       return
@@ -426,26 +540,6 @@ function Attendance() {
   }
 
   // ==========================================
-  // STATUS VARIANT
-  // ==========================================
-
-  function getStatusVariant(status) {
-    if (status === 'Present') {
-      return 'success'
-    }
-
-    if (status === 'Late') {
-      return 'warning'
-    }
-
-    if (status === 'Absent') {
-      return 'danger'
-    }
-
-    return 'neutral'
-  }
-
-  // ==========================================
   // LOADING
   // ==========================================
 
@@ -456,6 +550,7 @@ function Attendance() {
         <div className="attendance-header">
 
           <div>
+
             <span className="module-eyebrow">
               WORKFORCE
             </span>
@@ -468,14 +563,17 @@ function Attendance() {
               Monitor employee attendance,
               working hours and daily activity.
             </p>
+
           </div>
 
         </div>
 
         <div className="content-section">
+
           <p>
             Loading attendance...
           </p>
+
         </div>
 
       </div>
@@ -485,7 +583,9 @@ function Attendance() {
   return (
     <div className="attendance-page">
 
-      {/* HEADER */}
+      {/* ======================================
+          HEADER
+      ====================================== */}
 
       <div className="attendance-header">
 
@@ -518,16 +618,22 @@ function Attendance() {
       </div>
 
 
-      {/* ERROR */}
+      {/* ======================================
+          ERROR
+      ====================================== */}
 
       {error && (
         <div className="content-section">
+
           <p>{error}</p>
+
         </div>
       )}
 
 
-      {/* DATE BAR */}
+      {/* ======================================
+          DATE BAR
+      ====================================== */}
 
       <div className="attendance-date-bar">
 
@@ -548,6 +654,7 @@ function Attendance() {
         <div className="attendance-date-actions">
 
           <button
+            type="button"
             onClick={() =>
               setSelectedDate(
                 new Date(
@@ -561,16 +668,7 @@ function Attendance() {
           </button>
 
           <button
-            onClick={() =>
-              setSelectedDate(
-                new Date(),
-              )
-            }
-          >
-            Today
-          </button>
-
-          <button
+            type="button"
             onClick={() =>
               setSelectedDate(
                 new Date(
@@ -583,51 +681,125 @@ function Attendance() {
             →
           </button>
 
+          <button
+            type="button"
+            onClick={() =>
+              setSelectedDate(
+                new Date(),
+              )
+            }
+          >
+            Today
+          </button>
+
         </div>
 
       </div>
 
 
-      {/* SUMMARY */}
+      {/* ======================================
+          SUMMARY
+      ====================================== */}
 
-      <div className="attendance-summary">
+      <div className="stats-grid">
 
-        <div className="attendance-summary-card">
-          <span>Present</span>
-          <strong>{summary.present}</strong>
-          <small>Selected date</small>
+        <div className="info-card">
+
+          <span>
+            Present
+          </span>
+
+          <strong>
+            {summary.present}
+          </strong>
+
+          <small>
+            Selected date
+          </small>
+
         </div>
 
-        <div className="attendance-summary-card">
-          <span>Late</span>
-          <strong>{summary.late}</strong>
-          <small>Selected date</small>
+
+        <div className="info-card">
+
+          <span>
+            Late
+          </span>
+
+          <strong>
+            {summary.late}
+          </strong>
+
+          <small>
+            Selected date
+          </small>
+
         </div>
 
-        <div className="attendance-summary-card">
-          <span>Absent</span>
-          <strong>{summary.absent}</strong>
-          <small>Selected date</small>
+
+        <div className="info-card">
+
+          <span>
+            Absent
+          </span>
+
+          <strong>
+            {summary.absent}
+          </strong>
+
+          <small>
+            Selected date
+          </small>
+
         </div>
 
-        <div className="attendance-summary-card">
-          <span>Work From Home</span>
-          <strong>{summary.wfh}</strong>
-          <small>Selected date</small>
+
+        <div className="info-card">
+
+          <span>
+            Work From Home
+          </span>
+
+          <strong>
+            {summary.wfh}
+          </strong>
+
+          <small>
+            Selected date
+          </small>
+
         </div>
 
       </div>
 
 
-      {/* FILTERS */}
+      {/* ======================================
+          ATTENDANCE SECTION
+      ====================================== */}
 
-      <div className="attendance-filters">
+      <div className="content-section">
 
-        <div>
+        <div className="section-header">
 
-          <label>
-            Status
-          </label>
+          <div>
+
+            <h2>
+              Daily Attendance
+            </h2>
+
+            <p>
+              Employee attendance records
+              for the selected date.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        {/* FILTERS */}
+
+        <div className="filters">
 
           <select
             value={filter}
@@ -644,21 +816,15 @@ function Attendance() {
                   key={status}
                   value={status}
                 >
-                  {status}
+                  {status === 'All'
+                    ? 'All Statuses'
+                    : status}
                 </option>
               ),
             )}
 
           </select>
 
-        </div>
-
-
-        <div>
-
-          <label>
-            Department
-          </label>
 
           <select
             value={department}
@@ -684,63 +850,41 @@ function Attendance() {
 
         </div>
 
-      </div>
 
-
-      {/* TABLE */}
-
-      <div className="attendance-table-section">
-
-        <div className="attendance-section-header">
-
-          <div>
-
-            <h2>
-              Daily Attendance
-            </h2>
-
-            <p>
-              Employee attendance records
-              for the selected date.
-            </p>
-
-          </div>
-
-          <span>
-            {filteredEmployees.length}{' '}
-            records
-          </span>
-
-        </div>
+        {/* TABLE */}
 
         <DataTable
           columns={columns}
           data={filteredEmployees}
-          emptyMessage="No attendance records found for the selected date and filters."
+          emptyMessage={
+            'No attendance records found for this date.'
+          }
         />
 
       </div>
 
 
-      {/* MODAL */}
+      {/* ======================================
+          MARK ATTENDANCE MODAL
+      ====================================== */}
 
       {showModal && (
 
         <div
-          className="attendance-modal-overlay"
+          className="modal-overlay"
           onClick={() =>
             setShowModal(false)
           }
         >
 
           <div
-            className="attendance-modal"
+            className="modal"
             onClick={(event) =>
               event.stopPropagation()
             }
           >
 
-            <div className="attendance-modal-header">
+            <div className="modal-header">
 
               <div>
 
@@ -768,69 +912,99 @@ function Attendance() {
 
             <form
               onSubmit={handleSubmit}
-              className="attendance-form"
+              className="leave-form"
             >
 
-              <div className="attendance-form-grid">
+              <div className="form-grid">
+
+                {/* EMPLOYEE */}
 
                 <div>
+
+                  <label>
+                    Employee
+                  </label>
+
+                  <select
+                    value={
+                      form.employeeId
+                    }
+                    onChange={
+                      handleEmployeeChange
+                    }
+                    required
+                  >
+
+                    <option value="">
+                      Select employee
+                    </option>
+
+                    {employees.map(
+                      (employee) => (
+                        <option
+                          key={
+                            employee._id
+                          }
+                          value={
+                            employee.employeeId
+                          }
+                        >
+                          {employee.name} (
+                          {
+                            employee.employeeId
+                          }
+                          )
+                        </option>
+                      ),
+                    )}
+
+                  </select>
+
+                </div>
+
+
+                {/* EMPLOYEE ID */}
+
+                <div>
+
                   <label>
                     Employee ID
                   </label>
 
                   <input
-                    name="employeeId"
                     value={
                       form.employeeId
                     }
-                    onChange={
-                      handleFormChange
-                    }
-                    placeholder="EMP001"
-                    required
+                    readOnly
+                    placeholder="Select employee"
                   />
+
                 </div>
 
 
-                <div>
-                  <label>
-                    Employee Name
-                  </label>
-
-                  <input
-                    name="employeeName"
-                    value={
-                      form.employeeName
-                    }
-                    onChange={
-                      handleFormChange
-                    }
-                    placeholder="Arjun Kumar"
-                    required
-                  />
-                </div>
-
+                {/* DEPARTMENT */}
 
                 <div>
+
                   <label>
                     Department
                   </label>
 
                   <input
-                    name="department"
                     value={
                       form.department
                     }
-                    onChange={
-                      handleFormChange
-                    }
-                    placeholder="Engineering"
-                    required
+                    readOnly
+                    placeholder="Select employee"
                   />
+
                 </div>
 
 
+                {/* DATE */}
+
                 <div>
+
                   <label>
                     Date
                   </label>
@@ -838,18 +1012,20 @@ function Attendance() {
                   <input
                     type="date"
                     name="date"
-                    value={
-                      form.date
-                    }
+                    value={form.date}
                     onChange={
                       handleFormChange
                     }
                     required
                   />
+
                 </div>
 
 
+                {/* STATUS */}
+
                 <div>
+
                   <label>
                     Status
                   </label>
@@ -864,27 +1040,36 @@ function Attendance() {
                     }
                   >
 
-                    <option value="Present">
-                      Present
-                    </option>
-
-                    <option value="Late">
-                      Late
-                    </option>
-
-                    <option value="Absent">
-                      Absent
-                    </option>
-
-                    <option value="WFH">
-                      WFH
-                    </option>
+                    {statusOptions
+                      .filter(
+                        (status) =>
+                          status !==
+                          'All',
+                      )
+                      .map(
+                        (status) => (
+                          <option
+                            key={
+                              status
+                            }
+                            value={
+                              status
+                            }
+                          >
+                            {status}
+                          </option>
+                        ),
+                      )}
 
                   </select>
+
                 </div>
 
 
+                {/* CHECK IN */}
+
                 <div>
+
                   <label>
                     Check In
                   </label>
@@ -899,10 +1084,14 @@ function Attendance() {
                     }
                     placeholder="08:54 AM"
                   />
+
                 </div>
 
 
+                {/* CHECK OUT */}
+
                 <div>
+
                   <label>
                     Check Out
                   </label>
@@ -917,10 +1106,14 @@ function Attendance() {
                     }
                     placeholder="05:42 PM"
                   />
+
                 </div>
 
 
+                {/* HOURS */}
+
                 <div>
+
                   <label>
                     Hours
                   </label>
@@ -935,12 +1128,15 @@ function Attendance() {
                     }
                     placeholder="8h 48m"
                   />
+
                 </div>
 
               </div>
 
 
-              <div className="attendance-form-actions">
+              {/* ACTIONS */}
+
+              <div className="form-actions">
 
                 <button
                   type="button"
@@ -954,7 +1150,11 @@ function Attendance() {
                 <button
                   type="submit"
                   className="primary-button"
-                  disabled={saving}
+                  disabled={
+                    saving ||
+                    employees.length ===
+                      0
+                  }
                 >
                   {saving
                     ? 'Saving...'

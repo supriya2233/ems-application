@@ -8,6 +8,11 @@ import departmentRoutes from './routes/departmentRoutes.js'
 import dashboardRoutes from './routes/dashboardRoutes.js'
 import taskRoutes from './routes/taskRoutes.js'
 import attendanceRoutes from './routes/attendanceRoutes.js'
+import payrollRoutes from './routes/payrollRoutes.js'
+import recruitmentRoutes from './routes/recruitmentRoutes.js'
+import onboardingRoutes from './routes/onboardingRoutes.js'
+import performanceRoutes from './routes/performanceRoutes.js'
+import documentRoutes from './routes/documentRoutes.js'
 
 dotenv.config()
 
@@ -29,6 +34,14 @@ app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/tasks', taskRoutes)
 app.use('/api/attendance', attendanceRoutes)
 app.use('/api/leaves', leaveRoutes)
+app.use('/api/payroll', payrollRoutes)
+app.use(
+  '/api/recruitment',
+  recruitmentRoutes,
+)
+app.use('/api/onboarding', onboardingRoutes)
+app.use('/api/performance', performanceRoutes)
+app.use('/api/documents', documentRoutes)
 
 const PORT = process.env.PORT || 5000
 

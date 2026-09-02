@@ -5,6 +5,7 @@ import {
   updateLeave,
   deleteLeave,
 } from '../services/leaveService'
+import { getEmployees } from '../services/employeeService'
 
 const leaveTypes = [
   'Annual',
@@ -22,6 +23,8 @@ const statusOptions = [
 
 function LeaveManagement() {
   const [leaves, setLeaves] = useState([])
+  const [employees, setEmployees] = useState([])
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -49,29 +52,39 @@ function LeaveManagement() {
   })
 
   // ==========================================
-  // LOAD LEAVES
+  // LOAD LEAVES + EMPLOYEES
   // ==========================================
 
-  const loadLeaves = async () => {
-    try {
-      setLoading(true)
-      setError('')
-
-      const data = await getLeaves()
-
-      setLeaves(data)
-    } catch (error) {
-      setError(
-        error.message ||
-          'Failed to load leave requests',
-      )
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    loadLeaves()
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        setError('')
+
+        const [leaveData, employeeData] =
+          await Promise.all([
+            getLeaves(),
+            getEmployees(),
+          ])
+
+        setLeaves(leaveData)
+        setEmployees(employeeData)
+      } catch (error) {
+        console.error(
+          'Failed to load leave data:',
+          error,
+        )
+
+        setError(
+          error.message ||
+            'Failed to load leave management data',
+        )
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
   }, [])
 
   // ==========================================
@@ -179,11 +192,6 @@ function LeaveManagement() {
         leave.status === 'Approved',
     ).length
 
-    const rejected = leaves.filter(
-      (leave) =>
-        leave.status === 'Rejected',
-    ).length
-
     const totalDays = leaves.reduce(
       (sum, leave) =>
         sum + Number(leave.days || 0),
@@ -194,7 +202,6 @@ function LeaveManagement() {
       total,
       pending,
       approved,
-      rejected,
       totalDays,
     }
   }, [leaves])
@@ -231,7 +238,43 @@ function LeaveManagement() {
   }, [leaves])
 
   // ==========================================
-  // FORM
+  // EMPLOYEE SELECTION
+  // ==========================================
+
+  const handleEmployeeChange = (event) => {
+    const employeeId =
+      event.target.value
+
+    const selectedEmployee =
+      employees.find(
+        (employee) =>
+          employee.employeeId ===
+          employeeId,
+      )
+
+    if (!selectedEmployee) {
+      setForm((previous) => ({
+        ...previous,
+        employeeId: '',
+        employee: '',
+        department: '',
+      }))
+
+      return
+    }
+
+    setForm((previous) => ({
+      ...previous,
+      employeeId:
+        selectedEmployee.employeeId,
+      employee: selectedEmployee.name,
+      department:
+        selectedEmployee.department,
+    }))
+  }
+
+  // ==========================================
+  // FORM CHANGE
   // ==========================================
 
   const handleFormChange = (event) => {
@@ -284,11 +327,19 @@ function LeaveManagement() {
   }
 
   // ==========================================
-  // CREATE
+  // CREATE LEAVE
   // ==========================================
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+
+    if (!form.employeeId) {
+      setError(
+        'Please select an employee.',
+      )
+
+      return
+    }
 
     try {
       setSaving(true)
@@ -296,8 +347,25 @@ function LeaveManagement() {
 
       const created =
         await createLeave({
-          ...form,
+          employeeId:
+            form.employeeId,
+
+          employee:
+            form.employee,
+
+          department:
+            form.department,
+
+          type: form.type,
+
+          from: form.from,
+
+          to: form.to,
+
           days: Number(form.days),
+
+          reason: form.reason,
+
           status: 'Pending',
         })
 
@@ -318,7 +386,7 @@ function LeaveManagement() {
   }
 
   // ==========================================
-  // APPROVE / REJECT
+  // UPDATE STATUS
   // ==========================================
 
   const handleStatusChange = async (
@@ -416,6 +484,7 @@ function LeaveManagement() {
         <div className="module-header">
 
           <div>
+
             <span className="module-eyebrow">
               PEOPLE OPERATIONS
             </span>
@@ -429,14 +498,17 @@ function LeaveManagement() {
               approvals and employee
               leave activity.
             </p>
+
           </div>
 
         </div>
 
         <div className="content-section">
+
           <p>
-            Loading leave requests...
+            Loading leave management...
           </p>
+
         </div>
 
       </div>
@@ -446,9 +518,7 @@ function LeaveManagement() {
   return (
     <div className="module-page">
 
-      {/* ======================================
-          HEADER
-      ====================================== */}
+      {/* HEADER */}
 
       <div className="module-header">
 
@@ -482,20 +552,18 @@ function LeaveManagement() {
       </div>
 
 
-      {/* ======================================
-          ERROR
-      ====================================== */}
+      {/* ERROR */}
 
       {error && (
         <div className="content-section">
+
           <p>{error}</p>
+
         </div>
       )}
 
 
-      {/* ======================================
-          SUMMARY
-      ====================================== */}
+      {/* SUMMARY */}
 
       <div className="stats-grid">
 
@@ -569,9 +637,7 @@ function LeaveManagement() {
       </div>
 
 
-      {/* ======================================
-          FILTER TOOLBAR
-      ====================================== */}
+      {/* REQUESTS */}
 
       <div className="content-section">
 
@@ -592,6 +658,8 @@ function LeaveManagement() {
 
         </div>
 
+
+        {/* FILTERS */}
 
         <div className="filters">
 
@@ -659,9 +727,7 @@ function LeaveManagement() {
         </div>
 
 
-        {/* ====================================
-            REQUEST TABLE
-        ==================================== */}
+        {/* TABLE */}
 
         <div className="ui-table-wrapper">
 
@@ -706,6 +772,7 @@ function LeaveManagement() {
               </tr>
 
             </thead>
+
 
             <tbody>
 
@@ -850,9 +917,7 @@ function LeaveManagement() {
       </div>
 
 
-      {/* ======================================
-          UPCOMING LEAVE
-      ====================================== */}
+      {/* UPCOMING LEAVE */}
 
       <div className="content-section">
 
@@ -904,6 +969,7 @@ function LeaveManagement() {
 
                   </div>
 
+
                   <div>
 
                     <strong>
@@ -921,6 +987,7 @@ function LeaveManagement() {
 
                   </div>
 
+
                   <span>
                     {leave.type}
                   </span>
@@ -937,9 +1004,7 @@ function LeaveManagement() {
       </div>
 
 
-      {/* ======================================
-          REQUEST LEAVE MODAL
-      ====================================== */}
+      {/* REQUEST LEAVE MODAL */}
 
       {showModal && (
 
@@ -971,6 +1036,7 @@ function LeaveManagement() {
 
               </div>
 
+
               <button
                 type="button"
                 onClick={() =>
@@ -990,6 +1056,54 @@ function LeaveManagement() {
 
               <div className="form-grid">
 
+                {/* EMPLOYEE */}
+
+                <div>
+
+                  <label>
+                    Employee
+                  </label>
+
+                  <select
+                    value={
+                      form.employeeId
+                    }
+                    onChange={
+                      handleEmployeeChange
+                    }
+                    required
+                  >
+
+                    <option value="">
+                      Select employee
+                    </option>
+
+                    {employees.map(
+                      (employee) => (
+                        <option
+                          key={
+                            employee._id
+                          }
+                          value={
+                            employee.employeeId
+                          }
+                        >
+                          {employee.name} (
+                          {
+                            employee.employeeId
+                          }
+                          )
+                        </option>
+                      ),
+                    )}
+
+                  </select>
+
+                </div>
+
+
+                {/* EMPLOYEE ID */}
+
                 <div>
 
                   <label>
@@ -997,40 +1111,17 @@ function LeaveManagement() {
                   </label>
 
                   <input
-                    name="employeeId"
                     value={
                       form.employeeId
                     }
-                    onChange={
-                      handleFormChange
-                    }
-                    placeholder="EMP002"
-                    required
+                    readOnly
+                    placeholder="Select employee"
                   />
 
                 </div>
 
 
-                <div>
-
-                  <label>
-                    Employee Name
-                  </label>
-
-                  <input
-                    name="employee"
-                    value={
-                      form.employee
-                    }
-                    onChange={
-                      handleFormChange
-                    }
-                    placeholder="Priya Sharma"
-                    required
-                  />
-
-                </div>
-
+                {/* DEPARTMENT */}
 
                 <div>
 
@@ -1039,19 +1130,17 @@ function LeaveManagement() {
                   </label>
 
                   <input
-                    name="department"
                     value={
                       form.department
                     }
-                    onChange={
-                      handleFormChange
-                    }
-                    placeholder="Design"
-                    required
+                    readOnly
+                    placeholder="Select employee"
                   />
 
                 </div>
 
+
+                {/* LEAVE TYPE */}
 
                 <div>
 
@@ -1083,6 +1172,8 @@ function LeaveManagement() {
                 </div>
 
 
+                {/* FROM */}
+
                 <div>
 
                   <label>
@@ -1103,6 +1194,8 @@ function LeaveManagement() {
 
                 </div>
 
+
+                {/* TO */}
 
                 <div>
 
@@ -1125,6 +1218,8 @@ function LeaveManagement() {
                 </div>
 
 
+                {/* DAYS */}
+
                 <div>
 
                   <label>
@@ -1133,7 +1228,6 @@ function LeaveManagement() {
 
                   <input
                     type="number"
-                    name="days"
                     value={
                       form.days
                     }
@@ -1142,6 +1236,8 @@ function LeaveManagement() {
 
                 </div>
 
+
+                {/* REASON */}
 
                 <div className="form-full">
 
@@ -1181,7 +1277,11 @@ function LeaveManagement() {
                 <button
                   type="submit"
                   className="primary-button"
-                  disabled={saving}
+                  disabled={
+                    saving ||
+                    employees.length ===
+                      0
+                  }
                 >
                   {saving
                     ? 'Submitting...'
