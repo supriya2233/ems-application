@@ -13,84 +13,110 @@ The application provides a centralized interface for managing: Employees, Depart
 
 ### Frontend
 
-- [x] React + Vite project setup
-- [x] Responsive application layout
-- [x] Sidebar navigation
-- [x] Header and user information section
-- [x] React Router navigation
-- [x] Dashboard UI
-- [x] Employee management UI
-- [x] Employee statistics and filtering
-- [x] Employee search
-- [x] Department management UI
-- [x] Task management UI
-- [x] Attendance management UI
-- [x] Leave management UI
-- [x] Workforce module dashboards
-- [x] Analytics and reports interfaces
-- [x] Announcements interface
-- [x] Responsive design foundation
-- [x] Reusable module dashboard components
-- [x] Static data for frontend modules
-- [x] Production build configuration
-- [ ] Backend API integration
+* [x] React + Vite project setup
+* [x] Responsive application layout
+* [x] Sidebar navigation
+* [x] Header and user information section
+* [x] React Router navigation
+* [x] Dashboard UI
+* [x] Employee management UI
+* [x] Employee statistics and filtering
+* [x] Employee search
+* [x] Department management UI
+* [x] Task management UI
+* [x] Attendance management UI
+* [x] Leave management UI
+* [x] Payroll management UI
+* [x] Recruitment management UI
+* [x] Onboarding management UI
+* [x] Performance management UI
+* [x] Documents management UI
+* [x] Workforce module dashboards
+* [x] Analytics and reports interfaces
+* [x] Announcements interface
+* [x] Responsive design foundation
+* [x] Reusable module dashboard components
+* [x] Static data for frontend modules
+* [x] Production build configuration
+* [x] Backend API integration for Employees
+* [x] Backend API integration for Departments
+* [x] Backend API integration for Tasks
+* [x] Backend API integration for Attendance
+* [x] Backend API integration for Leave Management
+* [x] Backend API integration for Payroll
+* [x] Backend API integration for Recruitment
+* [x] Backend API integration for Onboarding
+* [x] Backend API integration for Performance
+* [x] Backend API integration for Documents
 
 ### Backend
 
-- [x] Node.js project setup
-- [x] Express.js server setup
-- [x] Backend development server
-- [x] MongoDB connection
-- [ ] REST API development
-- [ ] Employee API
-- [ ] Department API
-- [ ] Task API
-- [ ] Attendance API
-- [ ] Leave management API
-- [ ] Dashboard API
-- [ ] Error handling
-- [ ] API validation
+* [x] Node.js project setup
+* [x] Express.js server setup
+* [x] Backend development server
+* [x] MongoDB connection
+* [x] REST API development
+* [x] Employee API
+* [x] Department API
+* [x] Task API
+* [x] Attendance API
+* [x] Leave management API
+* [x] Payroll API
+* [x] Recruitment API
+* [x] Onboarding API
+* [x] Performance API
+* [x] Documents API
+* [x] Dashboard API
+* [x] MongoDB models
+* [x] CRUD operations
+* [ ] Error handling
+* [ ] API validation
 
 ### Database
 
-- [x] MongoDB installed and configured
-- [x] MongoDB service running
-- [x] MongoDB connection established with backend
-- [ ] Employee collection/model
-- [ ] Department collection/model
-- [ ] Task collection/model
-- [ ] Attendance collection/model
-- [ ] Leave collection/model
-- [ ] Database integration with application APIs
+* [x] MongoDB installed and configured
+* [x] MongoDB service running
+* [x] MongoDB connection established with backend
+* [x] Employee collection/model
+* [x] Department collection/model
+* [x] Task collection/model
+* [x] Attendance collection/model
+* [x] Leave collection/model
+* [x] Payroll collection/model
+* [x] Recruitment collection/model
+* [x] Onboarding collection/model
+* [x] Performance collection/model
+* [x] Documents collection/model
+* [x] Database integration with application APIs
 
 ## 🛠️ Technology Stack
 
 ### Frontend
 
-- React
-- Vite
-- React Router
-- Recharts
-- Lucide React
-- CSS
+* React
+* Vite
+* React Router
+* Recharts
+* Lucide React
+* CSS
 
 ### Backend
 
-- Node.js
-- Express.js
-- Nodemon
+* Node.js
+* Express.js
+* Nodemon
 
 ### Database
 
-- MongoDB
-- Mongoose
+* MongoDB
+* Mongoose
 
 ### Development Tools
 
-- Visual Studio Code
-- Git
-- GitHub
-- PowerShell
+* Visual Studio Code
+* Git
+* GitHub
+* PowerShell
 
 ## 📂 Current Project Structure
 
@@ -139,8 +165,22 @@ ems-application/
 │   │   │   ├── Employees.jsx
 │   │   │   ├── LeaveManagement.jsx
 │   │   │   ├── Payroll.jsx
+│   │   │   ├── Recruitment.jsx
+│   │   │   ├── Onboarding.jsx
+│   │   │   ├── Performance.jsx
+│   │   │   ├── Documents.jsx
 │   │   │   ├── Tasks.jsx
 │   │   │   └── ...
+│   │   │
+│   │   ├── services/
+│   │   │   ├── employeeService.js
+│   │   │   ├── attendanceService.js
+│   │   │   ├── leaveService.js
+│   │   │   ├── payrollService.js
+│   │   │   ├── recruitmentService.js
+│   │   │   ├── onboardingService.js
+│   │   │   ├── performanceService.js
+│   │   │   └── documentService.js
 │   │   │
 │   │   ├── App.jsx
 │   │   ├── index.css
@@ -151,6 +191,45 @@ ems-application/
 │
 ├── backend/
 │   ├── src/
+│   │   ├── config/
+│   │   │   └── db.js
+│   │   │
+│   │   ├── controllers/
+│   │   │   ├── attendanceController.js
+│   │   │   ├── departmentController.js
+│   │   │   ├── documentController.js
+│   │   │   ├── employeeController.js
+│   │   │   ├── leaveController.js
+│   │   │   ├── onboardingController.js
+│   │   │   ├── payrollController.js
+│   │   │   ├── performanceController.js
+│   │   │   ├── recruitmentController.js
+│   │   │   └── taskController.js
+│   │   │
+│   │   ├── models/
+│   │   │   ├── Attendance.js
+│   │   │   ├── Department.js
+│   │   │   ├── Document.js
+│   │   │   ├── Employee.js
+│   │   │   ├── Leave.js
+│   │   │   ├── Onboarding.js
+│   │   │   ├── Payroll.js
+│   │   │   ├── Performance.js
+│   │   │   ├── Recruitment.js
+│   │   │   └── Task.js
+│   │   │
+│   │   ├── routes/
+│   │   │   ├── attendanceRoutes.js
+│   │   │   ├── departmentRoutes.js
+│   │   │   ├── documentRoutes.js
+│   │   │   ├── employeeRoutes.js
+│   │   │   ├── leaveRoutes.js
+│   │   │   ├── onboardingRoutes.js
+│   │   │   ├── payrollRoutes.js
+│   │   │   ├── performanceRoutes.js
+│   │   │   ├── recruitmentRoutes.js
+│   │   │   └── taskRoutes.js
+│   │   │
 │   │   └── server.js
 │   │
 │   ├── package.json
@@ -158,3 +237,4 @@ ems-application/
 │
 ├── .gitignore
 └── README.md
+```
