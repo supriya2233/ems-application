@@ -6898,3 +6898,59 @@ select {
   }
 
 }
+
+/* Assets page */
+
+.assets-toolbar {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 220px 220px;
+  gap: 12px;
+  align-items: center;
+  padding: 20px;
+}
+
+.assets-toolbar .form-control {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .assets-toolbar {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .assets-toolbar {
+    padding: 14px;
+    gap: 10px;
+  }
+}
+
+/* Assets page */
+
+.assets-toolbar {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 220px 220px;
+  gap: 12px;
+  align-items: center;
+  padding: 20px;
+}
+
+.assets-toolbar .form-control {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .assets-toolbar {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .assets-toolbar {
+    padding: 14px;
+    gap: 10px;
+  }
+}

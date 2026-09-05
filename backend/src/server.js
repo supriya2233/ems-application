@@ -13,6 +13,8 @@ import recruitmentRoutes from './routes/recruitmentRoutes.js'
 import onboardingRoutes from './routes/onboardingRoutes.js'
 import performanceRoutes from './routes/performanceRoutes.js'
 import documentRoutes from './routes/documentRoutes.js'
+import assetRoutes from './routes/assetRoutes.js'
+
 
 dotenv.config()
 
@@ -42,6 +44,8 @@ app.use(
 app.use('/api/onboarding', onboardingRoutes)
 app.use('/api/performance', performanceRoutes)
 app.use('/api/documents', documentRoutes)
+app.use('/api/assets', assetRoutes)
+app.use('/api/assets', assetRoutes)
 
 const PORT = process.env.PORT || 5000
 
