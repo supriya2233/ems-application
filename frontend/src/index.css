@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&display=swap");
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -6952,5 +6953,432 @@ select {
   .assets-toolbar {
     padding: 14px;
     gap: 10px;
+  }
+}
+
+/* =========================================================
+   EMS — GetLayers-inspired Dark Design System
+   ========================================================= */
+
+:root {
+  /* Typography */
+  --font-primary: "Onest", "Onest Fallback", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --font-size-xs: 10.24px;
+  --font-size-sm: 11.66px;
+  --font-size-md: 12.09px;
+  --font-size-lg: 12.44px;
+  --font-size-xl: 12.8px;
+  --font-size-2xl: 13.51px;
+  --font-size-3xl: 14.22px;
+  --font-size-4xl: 14.51px;
+
+  /* Colors */
+  --color-bg: #000000;
+  --color-surface: #131218;
+  --color-surface-muted: #1b1b22;
+  --color-surface-hover: #202027;
+
+  --color-text-primary: #f5f4f7;
+  --color-text-secondary: #a3a1ad;
+  --color-text-tertiary: #6a6873;
+
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.16);
+
+  --color-white: #ffffff;
+
+  /* Radius */
+  --radius-xs: 12px;
+  --radius-sm: 24px;
+  --radius-pill: 999px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+
+  /* Effects */
+  --shadow-inset: rgba(255, 255, 255, 0.08) 0 1px 1px 0 inset;
+
+  /* Motion */
+  --transition-fast: 120ms ease;
+  --transition-normal: 180ms ease;
+}
+
+
+/* =========================================================
+   Base
+   ========================================================= */
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+html {
+  background: var(--color-bg);
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-lg);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+
+/* =========================================================
+   Typography
+   ========================================================= */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-top: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--color-text-primary);
+  font-family: var(--font-primary);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: var(--font-size-4xl);
+}
+
+h2 {
+  font-size: var(--font-size-3xl);
+}
+
+h3 {
+  font-size: var(--font-size-2xl);
+}
+
+h4 {
+  font-size: var(--font-size-xl);
+}
+
+p {
+  color: var(--color-text-secondary);
+}
+
+small {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+
+/* =========================================================
+   Links
+   ========================================================= */
+
+a {
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-white);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--color-white);
+  outline-offset: 3px;
+  border-radius: var(--radius-xs);
+}
+
+
+/* =========================================================
+   Inputs
+   ========================================================= */
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-md);
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--color-border-strong);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-white);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   Buttons
+   ========================================================= */
+
+button {
+  font-family: var(--font-primary);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--color-white);
+  outline-offset: 2px;
+}
+
+.ui-button {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  min-height: 32px;
+  padding: 0 var(--space-4);
+  cursor: pointer;
+
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.ui-button:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-strong);
+}
+
+.ui-button:active {
+  transform: translateY(1px);
+}
+
+.ui-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ui-button-primary {
+  background: var(--color-text-primary);
+  color: #000000;
+  border-color: var(--color-text-primary);
+}
+
+.ui-button-primary:hover {
+  background: var(--color-white);
+  color: #000000;
+}
+
+
+/* =========================================================
+   Cards
+   ========================================================= */
+
+.ui-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  box-shadow: var(--shadow-inset);
+  color: var(--color-text-primary);
+}
+
+.ui-card:hover {
+  border-color: var(--color-border-strong);
+}
+
+
+/* =========================================================
+   Tables
+   ========================================================= */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+}
+
+td {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--color-border);
+}
+
+tbody tr {
+  transition: background var(--transition-fast);
+}
+
+tbody tr:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+
+/* =========================================================
+   Modals
+   ========================================================= */
+
+.ui-modal-overlay {
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+.ui-modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    var(--shadow-inset);
+  color: var(--color-text-primary);
+}
+
+.ui-modal-header {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ui-modal-header h2 {
+  color: var(--color-text-primary);
+}
+
+.ui-modal-close {
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-pill);
+}
+
+.ui-modal-close:hover {
+  color: var(--color-text-primary);
+  background: var(--color-surface-muted);
+}
+
+
+/* =========================================================
+   Scrollbars
+   ========================================================= */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2931 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #2a2931;
+  border-radius: var(--radius-pill);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #3a3942;
+}
+
+
+/* =========================================================
+   Selection
+   ========================================================= */
+
+::selection {
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--color-text-primary);
+}
+
+
+/* =========================================================
+   Responsive
+   ========================================================= */
+
+@media (max-width: 768px) {
+  body {
+    font-size: var(--font-size-md);
+  }
+
+  .ui-button {
+    min-height: 34px;
+    padding: 0 var(--space-3);
+  }
+
+  .ui-modal {
+    width: calc(100% - 24px);
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .ui-button {
+    min-height: 36px;
   }
 }
