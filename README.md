@@ -89,35 +89,6 @@ The application provides a centralized interface for managing: Employees, Depart
 * [x] Documents collection/model
 * [x] Database integration with application APIs
 
-## 🛠️ Technology Stack
-
-### Frontend
-
-* React
-* Vite
-* React Router
-* Recharts
-* Lucide React
-* CSS
-
-### Backend
-
-* Node.js
-* Express.js
-* Nodemon
-
-### Database
-
-* MongoDB
-* Mongoose
-
-### Development Tools
-
-* Visual Studio Code
-* Git
-* GitHub
-* PowerShell
-
 ## 📂 Current Project Structure
 
 ```text
