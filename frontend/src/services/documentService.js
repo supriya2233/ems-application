@@ -1,4 +1,6 @@
-const API_URL = 'http://localhost:5000/api/documents'
+import { API_BASE } from './apiClient'
+
+const API_URL = `${API_BASE}/documents`
 
 export const getDocuments = async () => {
   const response = await fetch(API_URL)

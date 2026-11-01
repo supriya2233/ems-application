@@ -126,6 +126,9 @@
   gap: var(--space-3);
   overflow-x: auto;
   padding-bottom: var(--space-2);
+  /* Contains the cards' visually-hidden labels (position: absolute),
+     so off-screen columns can't make the whole page scroll sideways. */
+  position: relative;
 }
 
 .pipeline-column {

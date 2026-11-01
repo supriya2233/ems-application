@@ -23,6 +23,7 @@ export function mergeDepartmentCounts(departments, employeeGroups, taskGroups) {
       ...department,
       employees: staff.employees || 0,
       active: staff.active || 0,
+      onLeave: staff.onLeave || 0,
       openTasks: tasks.open || 0,
       completedTasks: tasks.completed || 0,
     }
@@ -37,6 +38,7 @@ export async function withLiveCounts(departments) {
           _id: '$department',
           employees: { $sum: 1 },
           active: { $sum: { $cond: [{ $eq: ['$status', 'Active'] }, 1, 0] } },
+          onLeave: { $sum: { $cond: [{ $eq: ['$status', 'On Leave'] }, 1, 0] } },
         },
       },
     ]),
@@ -59,4 +61,4 @@ export async function withLiveCounts(departments) {
 }
 
 // Fields the server owns; ignored if a browser sends them.
-export const COMPUTED_DEPARTMENT_FIELDS = ['employees', 'active', 'openTasks', 'completedTasks']
+export const COMPUTED_DEPARTMENT_FIELDS = ['employees', 'active', 'onLeave', 'openTasks', 'completedTasks']

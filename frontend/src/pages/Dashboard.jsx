@@ -14,6 +14,7 @@ import RecentEmployees from '../components/dashboard/RecentEmployees'
 import DepartmentOverview from '../components/dashboard/DepartmentOverview'
 import TaskOverview from '../components/dashboard/TaskOverview'
 import ActivityFeed from '../components/dashboard/ActivityFeed'
+import TodayPanel from '../components/dashboard/TodayPanel'
 import { useLiveRefresh } from '../components/live/liveEventsContext'
 import { getDashboard } from '../services/dashboardService'
 
@@ -337,6 +338,18 @@ function Dashboard() {
             warning={overdueTasks > 0}
           />
         </section>
+      )}
+
+
+      {/* ===============================================
+          TODAY: on leave, joining, leaving, approvals
+      =============================================== */}
+
+      {hasData && (
+        <TodayPanel
+          today={dashboard.today}
+          approvalsWaiting={dashboard.approvals?.waiting || 0}
+        />
       )}
 
 

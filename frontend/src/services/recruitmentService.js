@@ -1,7 +1,6 @@
-import { apiRequest } from './apiClient'
+import { apiRequest, API_BASE } from './apiClient'
 
-const API_URL =
-  'http://localhost:5000/api/recruitment'
+const API_URL = `${API_BASE}/recruitment`
 
 export const getRecruitments = async (
   params = {},

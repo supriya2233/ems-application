@@ -34,6 +34,7 @@ function ActivityFeed() {
           <h2 id="dash-activity-title">Recent activity</h2>
           <p>Updates live as changes are made</p>
         </div>
+        <Link to="/activity" className="dash-panel-link">View all</Link>
       </header>
 
       {loading && <p className="dash-panel-message">Loading activity…</p>}

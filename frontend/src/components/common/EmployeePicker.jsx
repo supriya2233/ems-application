@@ -25,6 +25,9 @@ function EmployeePicker({
   required = false,
   disabled = false,
   allowUnassigned = false,
+  // Wording of the empty choice, e.g. "Anyone" when used as a filter
+  unassignedLabel = 'Unassigned',
+  unassignedHint = 'Nobody holds this',
   placeholder = 'Search by name or ID…',
 }) {
   const [employees, setEmployees] = useState([])
@@ -200,8 +203,8 @@ function EmployeePicker({
                 </>
               ) : (
                 <span className="ui-picker-text">
-                  <strong>Unassigned</strong>
-                  <small>Nobody holds this</small>
+                  <strong>{unassignedLabel}</strong>
+                  <small>{unassignedHint}</small>
                 </span>
               )}
             </li>
