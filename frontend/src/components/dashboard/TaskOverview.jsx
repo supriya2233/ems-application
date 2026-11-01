@@ -16,7 +16,7 @@ const STATUSES = [
   { name: 'To Do', className: 'to-do' },
 ]
 
-function TaskOverview() {
+function TaskOverview({ refreshKey = 0 }) {
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -24,7 +24,7 @@ function TaskOverview() {
   useEffect(() => {
     const loadTasks = async () => {
       try {
-        setLoading(true)
+        // `loading` starts as true; live refreshes update quietly.
         setError('')
 
         const data = await getTasks()
@@ -41,7 +41,7 @@ function TaskOverview() {
     }
 
     loadTasks()
-  }, [])
+  }, [refreshKey])
 
   const totalTasks = tasks.length
 

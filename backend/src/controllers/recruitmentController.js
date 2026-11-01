@@ -1,6 +1,7 @@
 import Recruitment from '../models/Recruitment.js'
 import { AppError } from '../middleware/errorHandler.js'
 import { assignId } from '../services/idService.js'
+import { publishChange } from '../services/activity.js'
 
 export const getRecruitments = async (
   req,
@@ -86,6 +87,7 @@ export const createRecruitment = async (req, res) => {
   await assignId('recruitment', Recruitment, body)
 
   const recruitment = await Recruitment.create(body)
+  publishChange('recruitment', 'created', null, recruitment)
 
   res.status(201).json({
     success: true,
@@ -98,6 +100,8 @@ export const updateRecruitment = async (req, res) => {
   const body = { ...req.body }
   delete body.candidateId // IDs never change after creation
 
+  const before = await Recruitment.findById(req.params.id).lean()
+
   const recruitment = await Recruitment.findByIdAndUpdate(
     req.params.id,
     body,
@@ -107,6 +111,8 @@ export const updateRecruitment = async (req, res) => {
   if (!recruitment) {
     throw new AppError(404, 'Candidate not found')
   }
+
+  publishChange('recruitment', 'updated', before, recruitment)
 
   res.json({
     success: true,
@@ -132,6 +138,8 @@ export const deleteRecruitment = async (
           'Recruitment record not found',
       })
     }
+
+    publishChange('recruitment', 'deleted', recruitment, null)
 
     res.json({
       success: true,

@@ -18,7 +18,7 @@ const formatJoined = (date) =>
       })
     : '—'
 
-function RecentEmployees() {
+function RecentEmployees({ refreshKey = 0 }) {
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -26,7 +26,7 @@ function RecentEmployees() {
   useEffect(() => {
     const loadEmployees = async () => {
       try {
-        setLoading(true)
+        // `loading` starts as true; live refreshes update quietly.
         setError('')
 
         const data = await getEmployees()
@@ -52,7 +52,7 @@ function RecentEmployees() {
     }
 
     loadEmployees()
-  }, [])
+  }, [refreshKey])
 
   return (
     <section

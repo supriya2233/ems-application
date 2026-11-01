@@ -2,6 +2,7 @@ import Onboarding from '../models/Onboarding.js'
 import { AppError } from '../middleware/errorHandler.js'
 import { assignId } from '../services/idService.js'
 import { getLink, linkEmployee } from '../services/employeeLink.js'
+import { publishChange } from '../services/activity.js'
 
 export const getOnboardingRecords = async (req, res) => {
   try {
@@ -49,6 +50,7 @@ export const createOnboarding = async (req, res) => {
   await assignId('onboarding', Onboarding, body)
 
   const record = await Onboarding.create(body)
+  publishChange('onboarding', 'created', null, record)
 
   res.status(201).json({
     success: true,
@@ -62,6 +64,8 @@ export const updateOnboarding = async (req, res) => {
   delete body.onboardingId // IDs never change after creation
   await linkEmployee(body, getLink(Onboarding), { isUpdate: true })
 
+  const before = await Onboarding.findById(req.params.id).lean()
+
   const record = await Onboarding.findByIdAndUpdate(
     req.params.id,
     body,
@@ -71,6 +75,8 @@ export const updateOnboarding = async (req, res) => {
   if (!record) {
     throw new AppError(404, 'Onboarding record not found')
   }
+
+  publishChange('onboarding', 'updated', before, record)
 
   res.json({
     success: true,
@@ -89,6 +95,8 @@ export const deleteOnboarding = async (req, res) => {
         message: 'Onboarding record not found',
       })
     }
+
+    publishChange('onboarding', 'deleted', record, null)
 
     res.json({
       success: true,

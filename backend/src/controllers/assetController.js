@@ -2,6 +2,7 @@ import Asset from '../models/Asset.js'
 import { AppError } from '../middleware/errorHandler.js'
 import { assignId } from '../services/idService.js'
 import { getLink, linkEmployee } from '../services/employeeLink.js'
+import { publishChange } from '../services/activity.js'
 
 export const getAssets = async (req, res) => {
   try {
@@ -73,6 +74,7 @@ export const createAsset = async (req, res) => {
   await assignId('assets', Asset, body)
 
   const asset = await Asset.create(body)
+  publishChange('assets', 'created', null, asset)
 
   res.status(201).json({
     success: true,
@@ -86,6 +88,8 @@ export const updateAsset = async (req, res) => {
   delete body.assetId // IDs never change after creation
   await linkEmployee(body, getLink(Asset), { isUpdate: true })
 
+  const before = await Asset.findById(req.params.id).lean()
+
   const asset = await Asset.findByIdAndUpdate(
     req.params.id,
     body,
@@ -95,6 +99,8 @@ export const updateAsset = async (req, res) => {
   if (!asset) {
     throw new AppError(404, 'Asset not found')
   }
+
+  publishChange('assets', 'updated', before, asset)
 
   res.json({
     success: true,
@@ -113,6 +119,8 @@ export const deleteAsset = async (req, res) => {
         message: 'Asset not found',
       })
     }
+
+    publishChange('assets', 'deleted', asset, null)
 
     res.json({
       success: true,

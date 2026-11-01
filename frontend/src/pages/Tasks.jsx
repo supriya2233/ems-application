@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useLiveRefresh } from '../components/live/liveEventsContext'
 import {
   getTasks,
   createTask,
@@ -51,10 +52,13 @@ function Tasks() {
    * ------------------------------------------------
    */
 
+  // Reload when tasks change in another tab.
+  const refreshKey = useLiveRefresh(['tasks'])
+
   useEffect(() => {
     const loadTasks = async () => {
       try {
-        setLoading(true)
+        // `loading` starts as true; live refreshes update quietly.
         setError('')
 
         const data = await getTasks()
@@ -70,7 +74,7 @@ function Tasks() {
     }
 
     loadTasks()
-  }, [])
+  }, [refreshKey])
 
   /*
    * ------------------------------------------------

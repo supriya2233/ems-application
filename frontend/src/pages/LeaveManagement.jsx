@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useLiveRefresh } from '../components/live/liveEventsContext'
 import {
   getLeaves,
   createLeave,
@@ -59,10 +60,13 @@ function LeaveManagement() {
   // LOAD LEAVES + EMPLOYEES
   // ==========================================
 
+  // Reload when leave or employees change in another tab.
+  const refreshKey = useLiveRefresh(['leave', 'employees'])
+
   useEffect(() => {
     const loadData = async () => {
       try {
-        setLoading(true)
+        // `loading` starts as true; live refreshes update quietly.
         setError('')
 
         const [leaveData, employeeData] =
@@ -89,7 +93,7 @@ function LeaveManagement() {
     }
 
     loadData()
-  }, [])
+  }, [refreshKey])
 
   // ==========================================
   // DATE HELPERS

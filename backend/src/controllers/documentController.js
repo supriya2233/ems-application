@@ -2,6 +2,7 @@ import Document from '../models/Document.js'
 import { AppError } from '../middleware/errorHandler.js'
 import { assignId } from '../services/idService.js'
 import { getLink, linkEmployee } from '../services/employeeLink.js'
+import { publishChange } from '../services/activity.js'
 
 export const getDocuments = async (req, res) => {
   try {
@@ -51,6 +52,7 @@ export const createDocument = async (req, res) => {
   await assignId('documents', Document, body)
 
   const document = await Document.create(body)
+  publishChange('documents', 'created', null, document)
 
   res.status(201).json({
     success: true,
@@ -64,6 +66,8 @@ export const updateDocument = async (req, res) => {
   delete body.documentId // IDs never change after creation
   await linkEmployee(body, getLink(Document), { isUpdate: true })
 
+  const before = await Document.findById(req.params.id).lean()
+
   const document = await Document.findByIdAndUpdate(
     req.params.id,
     body,
@@ -73,6 +77,8 @@ export const updateDocument = async (req, res) => {
   if (!document) {
     throw new AppError(404, 'Document not found')
   }
+
+  publishChange('documents', 'updated', before, document)
 
   res.json({
     success: true,
@@ -93,6 +99,8 @@ export const deleteDocument = async (req, res) => {
         message: 'Document not found',
       })
     }
+
+    publishChange('documents', 'deleted', document, null)
 
     res.json({
       success: true,

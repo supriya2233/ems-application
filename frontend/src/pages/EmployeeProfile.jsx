@@ -16,6 +16,7 @@ import {
 import Badge from '../components/common/Badge'
 import EmptyState from '../components/common/EmptyState'
 import { getEmployeeOverview } from '../services/employeeService'
+import { useLiveEvents } from '../components/live/liveEventsContext'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 
 /*
@@ -92,6 +93,15 @@ function EmployeeProfile() {
   const [overview, setOverview] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  // Something about this person changed (here or in another tab):
+  // fetch the overview again without showing the loading state.
+  useLiveEvents((event) => {
+    if (event.employeeId !== employeeId) return
+    getEmployeeOverview(employeeId)
+      .then(setOverview)
+      .catch(() => {})
+  })
 
   useEffect(() => {
     let ignore = false

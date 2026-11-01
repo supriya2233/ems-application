@@ -2,6 +2,7 @@ import Performance from '../models/Performance.js'
 import { AppError } from '../middleware/errorHandler.js'
 import { assignId } from '../services/idService.js'
 import { getLink, linkEmployee } from '../services/employeeLink.js'
+import { publishChange } from '../services/activity.js'
 
 export const getPerformanceRecords = async (req, res) => {
   try {
@@ -51,6 +52,7 @@ export const createPerformance = async (req, res) => {
   await assignId('performance', Performance, body)
 
   const record = await Performance.create(body)
+  publishChange('performance', 'created', null, record)
 
   res.status(201).json({
     success: true,
@@ -64,6 +66,8 @@ export const updatePerformance = async (req, res) => {
   delete body.reviewId // IDs never change after creation
   await linkEmployee(body, getLink(Performance), { isUpdate: true })
 
+  const before = await Performance.findById(req.params.id).lean()
+
   const record = await Performance.findByIdAndUpdate(
     req.params.id,
     body,
@@ -73,6 +77,8 @@ export const updatePerformance = async (req, res) => {
   if (!record) {
     throw new AppError(404, 'Performance review not found')
   }
+
+  publishChange('performance', 'updated', before, record)
 
   res.json({
     success: true,
@@ -93,6 +99,8 @@ export const deletePerformance = async (req, res) => {
         message: 'Performance record not found',
       })
     }
+
+    publishChange('performance', 'deleted', record, null)
 
     res.json({
       success: true,

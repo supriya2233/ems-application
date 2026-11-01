@@ -13,6 +13,8 @@ import StatCard from '../components/common/StatCard'
 import RecentEmployees from '../components/dashboard/RecentEmployees'
 import DepartmentOverview from '../components/dashboard/DepartmentOverview'
 import TaskOverview from '../components/dashboard/TaskOverview'
+import ActivityFeed from '../components/dashboard/ActivityFeed'
+import { useLiveRefresh } from '../components/live/liveEventsContext'
 import { getDashboard } from '../services/dashboardService'
 
 /* ------------------------------------------------
@@ -86,10 +88,13 @@ function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  // Goes up whenever data changes in another tab.
+  const refreshKey = useLiveRefresh()
+
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        setLoading(true)
+        // `loading` starts as true; live refreshes update quietly.
         setError('')
 
         const data = await getDashboard()
@@ -105,7 +110,7 @@ function Dashboard() {
     }
 
     loadDashboard()
-  }, [])
+  }, [refreshKey])
 
   const greeting = getGreeting(new Date())
 
@@ -304,11 +309,14 @@ function Dashboard() {
       =============================================== */}
 
       <div className="dash-grid">
-        <RecentEmployees />
+        <div className="dash-stack">
+          <RecentEmployees refreshKey={refreshKey} />
+          <ActivityFeed />
+        </div>
 
         <div className="dash-stack">
-          <TaskOverview />
-          <DepartmentOverview />
+          <TaskOverview refreshKey={refreshKey} />
+          <DepartmentOverview refreshKey={refreshKey} />
         </div>
       </div>
 
