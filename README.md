@@ -5,8 +5,6 @@ It covers the whole employee lifecycle (hiring, onboarding, leave, payroll, offb
 **one connected workflow**, not separate forms. Every change is recorded, notified and pushed
 live to every open browser tab.
 
-![Dashboard](docs/screenshots/dashboard.png)
-
 ## The problem
 
 Small HR teams often keep people data in separate tools or spreadsheets: one for leave,
@@ -42,16 +40,6 @@ a Calendar (holidays, leave, joining dates) and Settings (leave allowances, holi
 
 > Analytics, Announcements, Reports and Help are styled screens using **sample data**; they
 > are not connected to the API yet.
-
-### Screenshots
-
-| | |
-|---|---|
-| ![Approvals inbox](docs/screenshots/approvals.png) **Approvals**: leave with balance after approval, documents to renew or verify | ![Employee 360](docs/screenshots/employee-profile.png) **Employee 360°**: everything about one person |
-| ![Recruitment board](docs/screenshots/recruitment-board.png) **Recruitment**: pipeline board with Hire | ![Payroll](docs/screenshots/payroll.png) **Payroll**: generated from salaries, unpaid leave and absences |
-| ![Task board](docs/screenshots/tasks-board.png) **Tasks**: drag-and-drop board | ![Activity log](docs/screenshots/activity-log.png) **Activity log**: who did what, and when |
-
-Responsive down to phone width: <img src="docs/screenshots/dashboard-mobile.png" alt="Dashboard on a phone" width="220">
 
 ## Architecture
 
@@ -188,7 +176,6 @@ frontend/
     styles/              design tokens, layout, kit and feature CSS
 docs/
   design-system.md       colours, type, spacing and components
-  screenshots/
 ```
 
 ## Known limitations
