@@ -2,6 +2,8 @@ import Employee from '../models/Employee.js'
 import Department from '../models/Department.js'
 import Task from '../models/Task.js'
 import Leave from '../models/Leave.js'
+import Onboarding from '../models/Onboarding.js'
+import { getOverdueSteps } from '../services/onboardingService.js'
 
 export const getDashboard = async (req, res) => {
   try {
@@ -41,6 +43,11 @@ export const getDashboard = async (req, res) => {
     // Leave requests waiting for approval
     const pendingLeave = await Leave.countDocuments({ status: 'Pending' })
 
+    // People still onboarding, and checklist steps past their due date
+    const onboardingEmployees = await Employee.countDocuments({ status: 'Onboarding' })
+    const openOnboarding = await Onboarding.countDocuments({ status: { $ne: 'Completed' } })
+    const overdueSteps = (await getOverdueSteps()).length
+
     // Overdue = due date has passed and task is not completed
     const overdueTasks = await Task.countDocuments({
       dueDate: { $lt: new Date() },
@@ -62,6 +69,12 @@ export const getDashboard = async (req, res) => {
 
         leave: {
           pending: pendingLeave,
+        },
+
+        onboarding: {
+          employees: onboardingEmployees,
+          open: openOnboarding,
+          overdueSteps,
         },
 
         tasks: {

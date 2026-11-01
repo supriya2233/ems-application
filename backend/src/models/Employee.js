@@ -58,8 +58,16 @@ const employeeSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ['Active', 'On Leave', 'Inactive'],
+      // Onboarding: hired, checklist not finished yet (becomes Active after)
+      enum: ['Active', 'On Leave', 'Inactive', 'Onboarding'],
       default: 'Active',
+    },
+
+    // Set when the employee was hired through Recruitment
+    candidateId: {
+      type: String,
+      trim: true,
+      default: '',
     },
 
     manager: {

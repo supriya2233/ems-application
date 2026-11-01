@@ -1036,6 +1036,10 @@ function Employees() {
                     </option>
 
                     <option>
+                      Onboarding
+                    </option>
+
+                    <option>
                       On Leave
                     </option>
 

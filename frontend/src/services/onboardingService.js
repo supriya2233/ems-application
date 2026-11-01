@@ -1,3 +1,5 @@
+import { apiRequest } from './apiClient'
+
 const API_URL = 'http://localhost:5000/api/onboarding'
 
 export const getOnboardingRecords = async () => {
@@ -81,3 +83,9 @@ export const deleteOnboarding = async (id) => {
 
   return result
 }
+/*
+ * Tick or untick one checklist step. For the equipment step an
+ * assetId can be passed: that asset is handed to the new employee.
+ */
+export const setOnboardingStep = async (id, step, { done, assetId } = {}) =>
+  (await apiRequest(`/onboarding/${id}/steps/${step}`, { method: 'PATCH', body: { done, assetId } })).data

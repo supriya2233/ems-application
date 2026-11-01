@@ -71,6 +71,17 @@ const recruitmentSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+
+    // Filled in by the Hire action (services/hiringService.js)
+    employeeId: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+
+    hiredAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,

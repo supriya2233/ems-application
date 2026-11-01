@@ -2,6 +2,7 @@ import Recruitment from '../models/Recruitment.js'
 import { AppError } from '../middleware/errorHandler.js'
 import { assignId } from '../services/idService.js'
 import { publishChange } from '../services/activity.js'
+import { hireCandidate } from '../services/hiringService.js'
 
 export const getRecruitments = async (
   req,
@@ -86,6 +87,11 @@ export const createRecruitment = async (req, res) => {
   const body = { ...req.body }
   await assignId('recruitment', Recruitment, body)
 
+  delete body.employeeId // set only by the Hire action
+  if (body.status === 'Hired') {
+    throw new AppError(400, 'Add the candidate first, then use Hire to create their employee record')
+  }
+
   const recruitment = await Recruitment.create(body)
   publishChange('recruitment', 'created', null, recruitment)
 
@@ -100,7 +106,19 @@ export const updateRecruitment = async (req, res) => {
   const body = { ...req.body }
   delete body.candidateId // IDs never change after creation
 
+  delete body.employeeId // set only by the Hire action
+  delete body.hiredAt
+
   const before = await Recruitment.findById(req.params.id).lean()
+
+  if (!before) {
+    throw new AppError(404, 'Candidate not found')
+  }
+
+  // "Hired" needs an employee record, so it only comes from Hire.
+  if (body.status === 'Hired' && before.status !== 'Hired') {
+    throw new AppError(400, 'Use the Hire button on a selected candidate to hire them')
+  }
 
   const recruitment = await Recruitment.findByIdAndUpdate(
     req.params.id,
@@ -154,4 +172,20 @@ export const deleteRecruitment = async (
       error: error.message,
     })
   }
+}
+
+
+/*
+ * POST /api/recruitment/:id/hire
+ * { role, department, joiningDate, employmentType, email, phone?, manager? }
+ * → { employee, onboarding, candidate }
+ */
+export const hireCandidateHandler = async (req, res) => {
+  const data = await hireCandidate(req.params.id, req.body)
+
+  res.status(201).json({
+    success: true,
+    message: `${data.employee.name} was hired as ${data.employee.employeeId}`,
+    data,
+  })
 }

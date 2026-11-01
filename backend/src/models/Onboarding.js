@@ -68,6 +68,41 @@ const onboardingSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+
+    // The four booleans above say whether a step is done. These add
+    // when each step is due and when it was done (services/onboardingRules.js).
+    stepDueDates: {
+      documents: Date,
+      orientation: Date,
+      equipment: Date,
+      systemAccess: Date,
+    },
+
+    stepCompletedAt: {
+      documents: Date,
+      orientation: Date,
+      equipment: Date,
+      systemAccess: Date,
+    },
+
+    // Steps we already sent an "overdue" notification for
+    overdueNotified: {
+      type: [String],
+      default: [],
+    },
+
+    // Asset handed over in the equipment step
+    equipmentAssetId: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+
+    candidateId: {
+      type: String,
+      trim: true,
+      default: '',
+    },
   },
   { timestamps: true },
 )

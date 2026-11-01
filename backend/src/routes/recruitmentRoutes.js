@@ -6,6 +6,7 @@ import {
   createRecruitment,
   updateRecruitment,
   deleteRecruitment,
+  hireCandidateHandler,
 } from '../controllers/recruitmentController.js'
 
 const router = express.Router()
@@ -34,5 +35,7 @@ router.delete(
   '/:id',
   deleteRecruitment,
 )
+
+router.post('/:id/hire', hireCandidateHandler)
 
 export default router

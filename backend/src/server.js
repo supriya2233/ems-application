@@ -18,7 +18,7 @@ import notificationRoutes from './routes/notificationRoutes.js'
 import activityRoutes from './routes/activityRoutes.js'
 import settingsRoutes from './routes/settingsRoutes.js'
 import approvalRoutes from './routes/approvalRoutes.js'
-import { startLeaveStatusJob } from './services/leaveService.js'
+import { startScheduledJobs } from './services/jobs.js'
 import { errorHandler, notFound } from './middleware/errorHandler.js'
 import { clientContext } from './services/events.js'
 import { registerListeners } from './services/listeners.js'
@@ -79,9 +79,9 @@ const PORT = process.env.PORT || 5000
 const startServer = async () => {
   await connectDB()
 
-  // Keeps employee status (Active / On Leave) in line with approved
-  // leave: runs now, then every hour.
-  startLeaveStatusJob()
+  // Background checks (leave status, overdue onboarding steps):
+  // run now, then every hour. See services/jobs.js.
+  startScheduledJobs()
 
   app.listen(PORT, () => {
     console.log(

@@ -3,6 +3,7 @@ import { AppError } from '../middleware/errorHandler.js'
 import { assignId } from '../services/idService.js'
 import { getLink, linkEmployee } from '../services/employeeLink.js'
 import { publishChange } from '../services/activity.js'
+import { assignAsset, recordAssignmentChange, returnAsset } from '../services/assetService.js'
 
 export const getAssets = async (req, res) => {
   try {
@@ -73,7 +74,10 @@ export const createAsset = async (req, res) => {
   await linkEmployee(body, getLink(Asset))
   await assignId('assets', Asset, body)
 
+  delete body.history // kept by the server
+
   const asset = await Asset.create(body)
+  await recordAssignmentChange(null, asset.toObject())
   publishChange('assets', 'created', null, asset)
 
   res.status(201).json({
@@ -86,6 +90,7 @@ export const createAsset = async (req, res) => {
 export const updateAsset = async (req, res) => {
   const body = { ...req.body }
   delete body.assetId // IDs never change after creation
+  delete body.history // kept by the server
   await linkEmployee(body, getLink(Asset), { isUpdate: true })
 
   const before = await Asset.findById(req.params.id).lean()
@@ -100,6 +105,8 @@ export const updateAsset = async (req, res) => {
     throw new AppError(404, 'Asset not found')
   }
 
+  // Changing the holder in the edit form is recorded in the history too.
+  await recordAssignmentChange(before, asset.toObject())
   publishChange('assets', 'updated', before, asset)
 
   res.json({
@@ -133,4 +140,17 @@ export const deleteAsset = async (req, res) => {
       error: error.message,
     })
   }
+}
+
+
+// POST /api/assets/:id/assign   { employeeId, date?, condition?, note? }
+export const assignAssetHandler = async (req, res) => {
+  const data = await assignAsset(req.params.id, req.body)
+  res.json({ success: true, message: `Assigned to ${data.employeeName}`, data })
+}
+
+// POST /api/assets/:id/return   { date?, condition?, note? }
+export const returnAssetHandler = async (req, res) => {
+  const data = await returnAsset(req.params.id, req.body)
+  res.json({ success: true, message: 'Asset returned', data })
 }

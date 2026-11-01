@@ -1,9 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Columns3, List, Plus, UserCheck, UserPlus, Users, MessagesSquare } from 'lucide-react'
+
 import PageHeader from '../components/common/PageHeader'
 import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
 import SearchBar from '../components/common/SearchBar'
 import Badge from '../components/common/Badge'
+import DataTable from '../components/common/DataTable'
+import EmptyState from '../components/common/EmptyState'
+import StatCard from '../components/common/StatCard'
+import HireModal from '../components/recruitment/HireModal'
+import PipelineBoard from '../components/recruitment/PipelineBoard'
+import { MOVABLE_STAGES, PIPELINE_STAGES } from '../utils/recruitment'
 import {
   getRecruitments,
   createRecruitment,
@@ -11,6 +20,8 @@ import {
   deleteRecruitment,
 } from '../services/recruitmentService'
 import { useConfirm, useToast } from '../components/common/feedbackContext'
+import { useLiveRefresh } from '../components/live/liveEventsContext'
+import { formatDay } from '../utils/leave'
 
 const initialForm = {
   candidateId: '',
@@ -26,13 +37,8 @@ const initialForm = {
   notes: '',
 }
 
-const statusOptions = [
-  'Applied',
-  'Screening',
-  'Interview',
-  'Selected',
-  'Rejected',
-]
+// The page remembers Board or Table between visits.
+const VIEW_KEY = 'ems.recruitment.view'
 
 function Recruitment() {
   const confirm = useConfirm()
@@ -42,6 +48,7 @@ function Recruitment() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const [view, setView] = useState(() => localStorage.getItem(VIEW_KEY) || 'board')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
 
@@ -51,24 +58,42 @@ function Recruitment() {
   const [saving, setSaving] = useState(false)
 
   const [viewCandidate, setViewCandidate] = useState(null)
+  const [hiring, setHiring] = useState(null)
 
-  const loadRecruitment = async () => {
-    try {
-      setLoading(true)
-      setError('')
-
-      const data = await getRecruitments()
-      setCandidates(data)
-    } catch (err) {
-      setError(err.message || 'Failed to load recruitment records')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Another tab moving or hiring a candidate updates this page.
+  const refreshKey = useLiveRefresh(['recruitment'])
 
   useEffect(() => {
-    loadRecruitment()
-  }, [])
+    let ignore = false
+
+    getRecruitments()
+      .then((data) => {
+        if (!ignore) {
+          setCandidates(data)
+          setError('')
+        }
+      })
+      .catch((err) => {
+        if (!ignore) setError(err.message || 'Failed to load recruitment records')
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false)
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [refreshKey])
+
+  const changeView = (next) => {
+    setView(next)
+    localStorage.setItem(VIEW_KEY, next)
+  }
+
+  const replace = (updated) =>
+    setCandidates((current) => current.map((item) => (item._id === updated._id ? updated : item)))
+
+  /* ---------------- Filters & summary ---------------- */
 
   const filteredCandidates = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -76,27 +101,53 @@ function Recruitment() {
     return candidates.filter((candidate) => {
       const matchesSearch =
         !query ||
-        candidate.candidateId?.toLowerCase().includes(query) ||
-        candidate.candidateName?.toLowerCase().includes(query) ||
-        candidate.email?.toLowerCase().includes(query) ||
-        candidate.position?.toLowerCase().includes(query) ||
-        candidate.department?.toLowerCase().includes(query)
+        [candidate.candidateId, candidate.candidateName, candidate.email, candidate.position, candidate.department]
+          .some((field) => String(field || '').toLowerCase().includes(query))
 
-      const matchesStatus =
-        statusFilter === 'All' || candidate.status === statusFilter
+      // The board already groups by stage, so the status filter is for the table.
+      const matchesStatus = view === 'board' || statusFilter === 'All' || candidate.status === statusFilter
 
       return matchesSearch && matchesStatus
     })
-  }, [candidates, search, statusFilter])
+  }, [candidates, search, statusFilter, view])
 
   const summary = useMemo(() => {
+    const count = (status) => candidates.filter((item) => item.status === status).length
+    const inProcess = candidates.filter((item) => ['Applied', 'Screening', 'Interview'].includes(item.status)).length
+
     return {
       total: candidates.length,
-      applied: candidates.filter((item) => item.status === 'Applied').length,
-      interview: candidates.filter((item) => item.status === 'Interview').length,
-      selected: candidates.filter((item) => item.status === 'Selected').length,
+      inProcess,
+      interview: count('Interview'),
+      selected: count('Selected'),
+      hired: count('Hired'),
     }
   }, [candidates])
+
+  /* ---------------- Moving & hiring ---------------- */
+
+  const moveCandidate = async (candidate, stage) => {
+    if (candidate.status === stage) return
+
+    // Show the move straight away; put it back if the save fails.
+    replace({ ...candidate, status: stage })
+
+    try {
+      const updated = await updateRecruitment(candidate._id, { status: stage })
+      replace(updated)
+      toast.success(`${candidate.candidateName} moved to ${stage}`)
+    } catch (err) {
+      replace(candidate)
+      toast.error(err.message || 'Could not move the candidate')
+    }
+  }
+
+  const handleHired = ({ candidate }) => {
+    replace(candidate)
+    setHiring(null)
+  }
+
+  /* ---------------- Add / edit / delete ---------------- */
 
   const openAddModal = () => {
     setEditingCandidate(null)
@@ -155,30 +206,25 @@ function Recruitment() {
 
       const payload = {
         ...form,
-        experience:
-          form.experience === '' ? 0 : Number(form.experience),
+        experience: form.experience === '' ? 0 : Number(form.experience),
       }
 
       if (editingCandidate) {
-        const updated = await updateRecruitment(
-          editingCandidate._id,
-          payload,
-        )
-
-        setCandidates((current) =>
-          current.map((candidate) =>
-            candidate._id === updated._id ? updated : candidate,
-          ),
-        )
+        const updated = await updateRecruitment(editingCandidate._id, payload)
+        replace(updated)
+        toast.success('Candidate updated')
       } else {
         const created = await createRecruitment(payload)
         setCandidates((current) => [created, ...current])
+        toast.success('Candidate added')
       }
 
-      closeModal()
+      setSaving(false)
+      setShowModal(false)
+      setEditingCandidate(null)
+      setForm(initialForm)
     } catch (err) {
       setError(err.message || 'Failed to save recruitment record')
-    } finally {
       setSaving(false)
     }
   }
@@ -186,7 +232,10 @@ function Recruitment() {
   const handleDelete = async (candidate) => {
     const confirmed = await confirm({
       title: 'Delete candidate?',
-      message: `The record for ${candidate.candidateName} will be permanently removed.`,
+      message:
+        candidate.status === 'Hired'
+          ? `The recruitment record for ${candidate.candidateName} will be removed. Their employee record (${candidate.employeeId}) stays.`
+          : `The record for ${candidate.candidateName} will be permanently removed.`,
       confirmLabel: 'Delete',
       tone: 'danger',
     })
@@ -195,219 +244,208 @@ function Recruitment() {
 
     try {
       setError('')
-
       await deleteRecruitment(candidate._id)
-
-      setCandidates((current) =>
-        current.filter((item) => item._id !== candidate._id),
-      )
-
+      setCandidates((current) => current.filter((item) => item._id !== candidate._id))
       toast.success('Candidate deleted')
     } catch (err) {
       setError(err.message || 'Failed to delete recruitment record')
     }
   }
 
-  const getStatusClass = (status) => {
-    switch (status) {
-      case 'Selected':
-        return 'success'
-      case 'Rejected':
-        return 'danger'
-      case 'Interview':
-        return 'info'
-      case 'Screening':
-        return 'warning'
-      default:
-        return 'neutral'
-    }
-  }
+  /* ---------------- Table ---------------- */
+
+  const columns = [
+    {
+      key: 'candidate',
+      label: 'Candidate',
+      render: (candidate) => (
+        <>
+          <div className="table-primary">{candidate.candidateName}</div>
+          <div className="table-secondary">{candidate.email}</div>
+        </>
+      ),
+    },
+    { key: 'position', label: 'Position', render: (candidate) => candidate.position || '—' },
+    { key: 'department', label: 'Department', render: (candidate) => candidate.department || '—' },
+    { key: 'experience', label: 'Experience', render: (candidate) => `${candidate.experience ?? 0} years` },
+    { key: 'applied', label: 'Applied', render: (candidate) => formatDay(candidate.appliedDate) },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (candidate) =>
+        candidate.status === 'Hired' && candidate.employeeId ? (
+          <Link to={`/employees/${candidate.employeeId}`} className="recruitment-hired-link">
+            <Badge>Hired</Badge>
+            <span>{candidate.employeeId}</span>
+          </Link>
+        ) : (
+          <Badge>{candidate.status}</Badge>
+        ),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (candidate) => (
+        <div className="table-actions">
+          {candidate.status === 'Selected' && (
+            <Button size="small" onClick={() => setHiring(candidate)}>
+              Hire
+            </Button>
+          )}
+          <Button size="small" variant="secondary" onClick={() => setViewCandidate(candidate)}>
+            View
+          </Button>
+          <Button size="small" variant="secondary" onClick={() => openEditModal(candidate)}>
+            Edit
+          </Button>
+          <Button
+            size="small"
+            variant="ghost"
+            aria-label={`Delete ${candidate.candidateName}`}
+            onClick={() => handleDelete(candidate)}
+          >
+            Delete
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
+  // A hired candidate keeps "Hired" (it can't be chosen by hand).
+  const formStatusOptions =
+    editingCandidate?.status === 'Hired' ? ['Hired'] : MOVABLE_STAGES
+
+  const isFiltered = search || (view === 'table' && statusFilter !== 'All')
 
   return (
-    <div className="page-container recruitment-page">
+    <div className="recruitment-page">
       <PageHeader
         title="Recruitment"
-        subtitle="Manage candidates and track the hiring pipeline."
-        actions={
-          <Button onClick={openAddModal}>
-            + Add Candidate
+        description="Move candidates through the pipeline and hire them straight into onboarding."
+        action={
+          <Button icon={<Plus size={16} aria-hidden="true" />} onClick={openAddModal}>
+            Add candidate
           </Button>
         }
       />
 
-      {error && (
-        <div className="ui-alert ui-alert-error">
-          {error}
-        </div>
-      )}
+      {error && <div className="ui-alert ui-alert-error" role="alert">{error}</div>}
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-card-label">Total Candidates</div>
-          <div className="stat-card-value">{summary.total}</div>
-        </div>
+      <section className="stats-grid" aria-label="Recruitment at a glance">
+        <StatCard
+          title="Candidates"
+          value={summary.total}
+          icon={<Users size={16} aria-hidden="true" />}
+          description={`${summary.inProcess} still in process`}
+        />
+        <StatCard
+          title="Interviewing"
+          value={summary.interview}
+          icon={<MessagesSquare size={16} aria-hidden="true" />}
+          description="at the interview stage"
+        />
+        <StatCard
+          title="Ready to hire"
+          value={summary.selected}
+          icon={<UserCheck size={16} aria-hidden="true" />}
+          warning={summary.selected > 0}
+          description={summary.selected > 0 ? 'selected, waiting for Hire' : 'nobody selected yet'}
+        />
+        <StatCard
+          title="Hired"
+          value={summary.hired}
+          icon={<UserPlus size={16} aria-hidden="true" />}
+          description={<Link to="/onboarding">See onboarding</Link>}
+        />
+      </section>
 
-        <div className="stat-card">
-          <div className="stat-card-label">Applied</div>
-          <div className="stat-card-value">{summary.applied}</div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-card-label">Interviews</div>
-          <div className="stat-card-value">{summary.interview}</div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-card-label">Selected</div>
-          <div className="stat-card-value">{summary.selected}</div>
-        </div>
-      </div>
-
-      <div className="ui-card">
-        <div className="ui-card-header">
+      <section className="ui-card recruitment-panel" aria-labelledby="recruitment-title">
+        <div className="recruitment-panel-header">
           <div>
-            <h2>Candidate Pipeline</h2>
-            <p>Review and manage current recruitment applications.</p>
+            <h2 id="recruitment-title">Candidate pipeline</h2>
+            <p>
+              {view === 'board'
+                ? 'Drag a card to another stage, or use its Stage menu.'
+                : 'All candidates in a list.'}
+            </p>
+          </div>
+
+          <div className="view-toggle" role="group" aria-label="Show candidates as">
+            <button
+              type="button"
+              aria-pressed={view === 'board'}
+              className={view === 'board' ? 'is-active' : ''}
+              onClick={() => changeView('board')}
+            >
+              <Columns3 size={16} aria-hidden="true" /> Board
+            </button>
+            <button
+              type="button"
+              aria-pressed={view === 'table'}
+              className={view === 'table' ? 'is-active' : ''}
+              onClick={() => changeView('table')}
+            >
+              <List size={16} aria-hidden="true" /> Table
+            </button>
           </div>
         </div>
 
         <div className="recruitment-toolbar">
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Search candidates..."
-          />
+          <SearchBar value={search} onChange={setSearch} placeholder="Search name, email, position or department…" />
 
-          <select
-            className="ui-select"
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-          >
-            <option value="All">All Statuses</option>
-
-            {statusOptions.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
+          {view === 'table' && (
+            <select
+              aria-label="Filter by status"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
+              <option value="All">All statuses</option>
+              {PIPELINE_STAGES.map((status) => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          )}
         </div>
 
-        {loading ? (
-          <div className="ui-loading">
-            Loading recruitment records...
-          </div>
-        ) : filteredCandidates.length === 0 ? (
-          <div className="ui-empty-state">
-            <div className="ui-empty-state-title">
-              No candidates found
-            </div>
-            <div className="ui-empty-state-description">
-              Add a candidate to start building your recruitment pipeline.
-            </div>
-          </div>
+        {view === 'board' ? (
+          loading ? (
+            <p className="ui-loading">Loading candidates…</p>
+          ) : candidates.length === 0 ? (
+            <EmptyState
+              title="No candidates yet"
+              description="Add a candidate to start your recruitment pipeline."
+            />
+          ) : (
+            <PipelineBoard
+              candidates={filteredCandidates}
+              onMove={moveCandidate}
+              onHire={setHiring}
+              onOpen={setViewCandidate}
+            />
+          )
         ) : (
-          <div className="ui-table-wrapper">
-            <table className="ui-table">
-              <thead>
-                <tr>
-                  <th>Candidate</th>
-                  <th>Position</th>
-                  <th>Department</th>
-                  <th>Experience</th>
-                  <th>Applied</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredCandidates.map((candidate) => (
-                  <tr key={candidate._id}>
-                    <td>
-                      <div className="table-primary">
-                        {candidate.candidateName}
-                      </div>
-                      <div className="table-secondary">
-                        {candidate.email}
-                      </div>
-                    </td>
-
-                    <td>{candidate.position || '—'}</td>
-
-                    <td>{candidate.department || '—'}</td>
-
-                    <td>
-                      {candidate.experience ?? 0} years
-                    </td>
-
-                    <td>
-                      {candidate.appliedDate
-                        ? new Date(
-                            candidate.appliedDate,
-                          ).toLocaleDateString()
-                        : '—'}
-                    </td>
-
-                    <td>
-                      <Badge
-                        variant={getStatusClass(candidate.status)}
-                      >
-                        {candidate.status}
-                      </Badge>
-                    </td>
-
-                    <td>
-                      <div className="table-actions">
-                        <button
-                          className="ui-button ui-button-secondary ui-button-small"
-                          onClick={() =>
-                            setViewCandidate(candidate)
-                          }
-                        >
-                          View
-                        </button>
-
-                        <button
-                          className="ui-button ui-button-secondary ui-button-small"
-                          onClick={() =>
-                            openEditModal(candidate)
-                          }
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          className="ui-button ui-button-danger ui-button-small"
-                          onClick={() =>
-                            handleDelete(candidate)
-                          }
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            caption="Candidates"
+            columns={columns}
+            data={filteredCandidates}
+            loading={loading}
+            emptyState={
+              <EmptyState
+                title={isFiltered ? 'No candidates match' : 'No candidates yet'}
+                description={
+                  isFiltered
+                    ? 'Try a different search or filter.'
+                    : 'Add a candidate to start your recruitment pipeline.'
+                }
+              />
+            }
+          />
         )}
-      </div>
+      </section>
 
       {showModal && (
-        <Modal
-          title={
-            editingCandidate
-              ? 'Edit Candidate'
-              : 'Add Candidate'
-          }
-          onClose={closeModal}
-        >
-          <form
-            className="ui-form"
-            onSubmit={handleSubmit}
-          >
+        <Modal title={editingCandidate ? 'Edit Candidate' : 'Add Candidate'} onClose={closeModal}>
+          <form className="ui-form" onSubmit={handleSubmit}>
             <div className="form-grid">
               <div className="form-group">
                 <label htmlFor="candidateId">Candidate ID</label>
@@ -417,8 +455,9 @@ function Recruitment() {
               </div>
 
               <div className="form-group">
-                <label>Candidate Name</label>
+                <label htmlFor="candidateName">Candidate Name</label>
                 <input
+                  id="candidateName"
                   name="candidateName"
                   value={form.candidateName}
                   onChange={handleChange}
@@ -428,8 +467,9 @@ function Recruitment() {
               </div>
 
               <div className="form-group">
-                <label>Email</label>
+                <label htmlFor="candidateEmail">Email</label>
                 <input
+                  id="candidateEmail"
                   type="email"
                   name="email"
                   value={form.email}
@@ -440,8 +480,9 @@ function Recruitment() {
               </div>
 
               <div className="form-group">
-                <label>Phone</label>
+                <label htmlFor="candidatePhone">Phone</label>
                 <input
+                  id="candidatePhone"
                   name="phone"
                   value={form.phone}
                   onChange={handleChange}
@@ -450,8 +491,9 @@ function Recruitment() {
               </div>
 
               <div className="form-group">
-                <label>Position</label>
+                <label htmlFor="candidatePosition">Position</label>
                 <input
+                  id="candidatePosition"
                   name="position"
                   value={form.position}
                   onChange={handleChange}
@@ -461,8 +503,9 @@ function Recruitment() {
               </div>
 
               <div className="form-group">
-                <label>Department</label>
+                <label htmlFor="candidateDepartment">Department</label>
                 <input
+                  id="candidateDepartment"
                   name="department"
                   value={form.department}
                   onChange={handleChange}
@@ -472,8 +515,9 @@ function Recruitment() {
               </div>
 
               <div className="form-group">
-                <label>Experience (years)</label>
+                <label htmlFor="candidateExperience">Experience (years)</label>
                 <input
+                  id="candidateExperience"
                   type="number"
                   min="0"
                   name="experience"
@@ -484,8 +528,9 @@ function Recruitment() {
               </div>
 
               <div className="form-group">
-                <label>Source</label>
+                <label htmlFor="candidateSource">Source</label>
                 <input
+                  id="candidateSource"
                   name="source"
                   value={form.source}
                   onChange={handleChange}
@@ -494,8 +539,9 @@ function Recruitment() {
               </div>
 
               <div className="form-group">
-                <label>Applied Date</label>
+                <label htmlFor="candidateApplied">Applied Date</label>
                 <input
+                  id="candidateApplied"
                   type="date"
                   name="appliedDate"
                   value={form.appliedDate}
@@ -504,24 +550,31 @@ function Recruitment() {
               </div>
 
               <div className="form-group">
-                <label>Status</label>
+                <label htmlFor="candidateStatus">Status</label>
                 <select
+                  id="candidateStatus"
                   name="status"
                   value={form.status}
                   onChange={handleChange}
+                  disabled={editingCandidate?.status === 'Hired'}
+                  aria-describedby="candidateStatusHelp"
                 >
-                  {statusOptions.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
+                  {formStatusOptions.map((status) => (
+                    <option key={status} value={status}>{status}</option>
                   ))}
                 </select>
+                <small id="candidateStatusHelp" className="hire-help">
+                  {editingCandidate?.status === 'Hired'
+                    ? `Hired as ${editingCandidate.employeeId || 'an employee'}.`
+                    : 'To hire, choose Selected and then use the Hire button.'}
+                </small>
               </div>
             </div>
 
             <div className="form-group">
-              <label>Notes</label>
+              <label htmlFor="candidateNotes">Notes</label>
               <textarea
+                id="candidateNotes"
                 name="notes"
                 value={form.notes}
                 onChange={handleChange}
@@ -531,21 +584,12 @@ function Recruitment() {
             </div>
 
             <div className="modal-actions">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={closeModal}
-                disabled={saving}
-              >
+              <Button type="button" variant="secondary" onClick={closeModal} disabled={saving}>
                 Cancel
               </Button>
 
-              <Button type="submit" disabled={saving}>
-                {saving
-                  ? 'Saving...'
-                  : editingCandidate
-                    ? 'Update Candidate'
-                    : 'Add Candidate'}
+              <Button type="submit" loading={saving}>
+                {editingCandidate ? 'Update Candidate' : 'Add Candidate'}
               </Button>
             </div>
           </form>
@@ -553,10 +597,7 @@ function Recruitment() {
       )}
 
       {viewCandidate && (
-        <Modal
-          title="Candidate Details"
-          onClose={() => setViewCandidate(null)}
-        >
+        <Modal title="Candidate Details" onClose={() => setViewCandidate(null)}>
           <div className="detail-grid">
             <div>
               <span className="detail-label">Candidate ID</span>
@@ -590,9 +631,7 @@ function Recruitment() {
 
             <div>
               <span className="detail-label">Experience</span>
-              <strong>
-                {viewCandidate.experience ?? 0} years
-              </strong>
+              <strong>{viewCandidate.experience ?? 0} years</strong>
             </div>
 
             <div>
@@ -602,31 +641,49 @@ function Recruitment() {
 
             <div>
               <span className="detail-label">Status</span>
-              <Badge
-                variant={getStatusClass(viewCandidate.status)}
-              >
-                {viewCandidate.status}
-              </Badge>
+              <Badge>{viewCandidate.status}</Badge>
             </div>
 
             <div>
               <span className="detail-label">Applied Date</span>
-              <strong>
-                {viewCandidate.appliedDate
-                  ? new Date(
-                      viewCandidate.appliedDate,
-                    ).toLocaleDateString()
-                  : '—'}
-              </strong>
+              <strong>{formatDay(viewCandidate.appliedDate)}</strong>
             </div>
+
+            {viewCandidate.status === 'Hired' && (
+              <div>
+                <span className="detail-label">Employee</span>
+                <strong>
+                  {viewCandidate.employeeId ? (
+                    <Link to={`/employees/${viewCandidate.employeeId}`}>{viewCandidate.employeeId}</Link>
+                  ) : '—'}
+                  {viewCandidate.hiredAt && ` · hired ${formatDay(viewCandidate.hiredAt)}`}
+                </strong>
+              </div>
+            )}
           </div>
 
           <div className="detail-notes">
             <span className="detail-label">Notes</span>
             <p>{viewCandidate.notes || 'No notes available.'}</p>
           </div>
+
+          {viewCandidate.status === 'Selected' && (
+            <div className="modal-actions">
+              <Button
+                icon={<UserCheck size={16} aria-hidden="true" />}
+                onClick={() => {
+                  setHiring(viewCandidate)
+                  setViewCandidate(null)
+                }}
+              >
+                Hire {viewCandidate.candidateName}
+              </Button>
+            </div>
+          )}
         </Modal>
       )}
+
+      {hiring && <HireModal candidate={hiring} onClose={() => setHiring(null)} onHired={handleHired} />}
     </div>
   )
 }

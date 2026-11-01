@@ -1,3 +1,5 @@
+import { apiRequest } from './apiClient'
+
 const API_URL = 'http://localhost:5000/api/assets'
 
 export const getAssets = async () => {
@@ -74,3 +76,10 @@ export const deleteAsset = async (id) => {
 
   return response.json()
 }
+/* Hand an available asset to an employee: { employeeId, date, condition, note } */
+export const assignAsset = async (id, details) =>
+  (await apiRequest(`/assets/${id}/assign`, { method: 'POST', body: details })).data
+
+/* Take an asset back: { date, condition, note }. Damaged/Poor → Under Maintenance. */
+export const returnAsset = async (id, details) =>
+  (await apiRequest(`/assets/${id}/return`, { method: 'POST', body: details })).data
