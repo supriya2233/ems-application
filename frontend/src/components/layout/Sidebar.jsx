@@ -1,192 +1,84 @@
 import { NavLink } from 'react-router-dom'
+import { X } from 'lucide-react'
 
+import { navigationGroups } from '../../config/navigation'
+
+/*
+ * Desktop: 64px icon rail that expands on hover / keyboard focus.
+ * Tablet & mobile: slide-in drawer opened from the header.
+ *
+ * Elements with "sidebar-reveal" fade in when the rail expands.
+ * They stay in the DOM, so screen readers always read the labels.
+ */
 function Sidebar({ isOpen, closeSidebar }) {
-  const navigationGroups = [
-    {
-      title: 'MAIN',
-      items: [
-        {
-          label: 'Dashboard',
-          path: '/dashboard',
-          icon: '▦',
-        },
-        {
-          label: 'Employees',
-          path: '/employees',
-          icon: '♙',
-        },
-        {
-          label: 'Departments',
-          path: '/departments',
-          icon: '▤',
-        },
-        {
-          label: 'Tasks',
-          path: '/tasks',
-          icon: '✓',
-          badge: 12,
-        },
-      ],
-    },
-
-    {
-      title: 'INSIGHTS',
-      items: [
-        {
-          label: 'Analytics',
-          path: '/analytics',
-          icon: '▥',
-        },
-        {
-          label: 'Attendance',
-          path: '/attendance',
-          icon: '✓',
-        },
-      ],
-    },
-
-    {
-      title: 'HR',
-      items: [
-        {
-          label: 'Leave Management',
-          path: '/leave',
-          icon: '□',
-          badge: 3,
-        },
-        {
-          label: 'Payroll',
-          path: '/payroll',
-          icon: '₹',
-        },
-        {
-          label: 'Recruitment',
-          path: '/recruitment',
-          icon: '♙',
-          badge: 5,
-        },
-        {
-          label: 'Onboarding',
-          path: '/onboarding',
-          icon: '+',
-          badge: 2,
-        },
-        {
-          label: 'Performance',
-          path: '/performance',
-          icon: '◎',
-        },
-      ],
-    },
-
-    {
-      title: 'TOOLS',
-      items: [
-        {
-          label: 'Documents',
-          path: '/documents',
-          icon: '▧',
-        },
-        {
-          label: 'Assets',
-          path: '/assets',
-          icon: '▱',
-        },
-        {
-          label: 'Calendar',
-          path: '/calendar',
-          icon: '□',
-        },
-        {
-          label: 'Announcements',
-          path: '/announcements',
-          icon: '◇',
-          badge: 2,
-        },
-        {
-          label: 'Notifications',
-          path: '/notifications',
-          icon: '♢',
-          badge: 4,
-        },
-      ],
-    },
-
-    {
-      title: 'SYSTEM',
-      items: [
-        {
-          label: 'Reports',
-          path: '/reports',
-          icon: '▤',
-        },
-        {
-          label: 'Settings',
-          path: '/settings',
-          icon: '⚙',
-        },
-        {
-          label: 'Help & Support',
-          path: '/help',
-          icon: '?',
-        },
-      ],
-    },
-  ]
-
   return (
     <aside
+      id="app-sidebar"
       className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}
     >
       {/* Brand */}
       <div className="sidebar-brand">
-        <div className="brand-logo">
+        <span className="brand-mark" aria-hidden="true">
           E
-        </div>
+        </span>
 
-        <div>
-          <h1>EMS</h1>
-          <p>Employee Management</p>
-        </div>
+        <span className="brand-text sidebar-reveal">
+          <strong>EMS</strong>
+          <small>People workspace</small>
+        </span>
+
+        <button
+          type="button"
+          className="sidebar-close"
+          onClick={closeSidebar}
+          aria-label="Close navigation"
+        >
+          <X size={20} aria-hidden="true" />
+        </button>
       </div>
 
       {/* Navigation */}
-      <nav className="sidebar-navigation">
+      <nav
+        className="sidebar-navigation"
+        aria-label="Main navigation"
+      >
         {navigationGroups.map((group) => (
           <div
             className="navigation-group"
             key={group.title}
           >
             <p className="navigation-label">
-              {group.title}
+              <span className="sidebar-reveal">
+                {group.title}
+              </span>
             </p>
 
-            {group.items.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={closeSidebar}
-                className={({ isActive }) =>
-                  `nav-item ${
-                    isActive ? 'nav-item-active' : ''
-                  }`
-                }
-              >
-                <span className="nav-icon">
-                  {item.icon}
-                </span>
+            {group.items.map((item) => {
+              const Icon = item.icon
 
-                <span className="nav-label">
-                  {item.label}
-                </span>
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={closeSidebar}
+                  className={({ isActive }) =>
+                    `nav-item ${
+                      isActive ? 'nav-item-active' : ''
+                    }`
+                  }
+                >
+                  <Icon
+                    className="nav-icon"
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
 
-                {item.badge && (
-                  <span className="nav-badge">
-                    {item.badge}
+                  <span className="nav-label sidebar-reveal">
+                    {item.label}
                   </span>
-                )}
-              </NavLink>
-            ))}
+                </NavLink>
+              )
+            })}
           </div>
         ))}
       </nav>

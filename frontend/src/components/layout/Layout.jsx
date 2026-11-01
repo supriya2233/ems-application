@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 
 import Sidebar from './Sidebar'
@@ -10,6 +10,26 @@ function Layout() {
   const closeSidebar = () => {
     setIsSidebarOpen(false)
   }
+
+  // Let keyboard users close the mobile drawer with Escape.
+  // The listener only exists while the drawer is open.
+  useEffect(() => {
+    if (!isSidebarOpen) {
+      return undefined
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsSidebarOpen(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isSidebarOpen])
 
   return (
     <div className="app">
@@ -23,6 +43,7 @@ function Layout() {
         <div
           className="sidebar-overlay"
           onClick={closeSidebar}
+          aria-hidden="true"
         />
       )}
 
@@ -30,6 +51,7 @@ function Layout() {
 
         <Header
           openSidebar={() => setIsSidebarOpen(true)}
+          isSidebarOpen={isSidebarOpen}
         />
 
         <main className="page-content">

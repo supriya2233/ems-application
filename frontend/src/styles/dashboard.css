@@ -1,0 +1,695 @@
+/* =========================================================
+   DASHBOARD
+   pages/Dashboard.jsx + components/dashboard/*.jsx
+
+   Uses the DesignMD "neutral card" pattern (§4): sections
+   separated by hairlines rather than boxed cards, so the
+   numbers and names carry the page.
+   All dashboard classes start with "dash-" to avoid clashing
+   with other pages' styles.
+========================================================= */
+
+.dashboard-page {
+  width: 100%;
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+}
+
+
+/* =========================================================
+   GREETING & SUMMARY
+========================================================= */
+
+.dash-intro {
+  margin-bottom: var(--space-8);
+}
+
+.dash-intro h1 {
+  margin: 0 0 var(--space-2);
+
+  color: var(--color-text);
+  font-size: var(--font-size-heading-sm);
+  line-height: var(--line-height-heading-sm);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0;
+}
+
+.dash-summary {
+  max-width: 64ch;
+  margin: 0;
+
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+
+/* =========================================================
+   CALLOUTS — "Needs your attention" and errors
+   DesignMD light-blue card (§4 Cards & Containers)
+========================================================= */
+
+.dash-callout {
+  display: flex;
+  gap: var(--space-3);
+
+  margin-bottom: var(--space-8);
+  padding: var(--card-padding);
+
+  background: var(--color-surface-accent);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.dash-callout-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-primary);
+}
+
+.dash-callout h2 {
+  margin: 0;
+
+  color: var(--color-text);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0;
+}
+
+.dash-callout p {
+  margin: var(--space-1) 0 0;
+
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body-sm);
+}
+
+.dash-callout-error {
+  background: var(--color-error-soft);
+}
+
+.dash-callout-error .dash-callout-icon {
+  color: var(--color-error);
+}
+
+.dash-attention-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-attention-list a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+
+  color: var(--color-primary);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.dash-attention-list a:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+
+/* =========================================================
+   KEY NUMBERS — one strip divided by hairlines
+   Restyles the shared StatCard component in this context only.
+
+   Divider technique: the grid has a 1px gap and a hairline-
+   coloured background; each cell is white. The background
+   shows through the gaps as lines between cells, at every
+   breakpoint, with no per-cell border rules.
+========================================================= */
+
+.dash-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+
+  margin-bottom: var(--space-8);
+
+  background: var(--color-border-input);
+  border-top: var(--border-width-thin) solid var(--color-border-input);
+  border-bottom: var(--border-width-thin) solid var(--color-border-input);
+}
+
+.dash-metrics .ui-stat-card,
+.dash-metric-skeleton {
+  min-height: 0;
+  padding: var(--space-5) var(--space-6);
+
+  background: var(--color-surface);
+  border: 0;
+  border-radius: 0;
+}
+
+.dash-metrics > .ui-stat-card:first-child,
+.dash-metrics > .dash-metric-skeleton:first-child {
+  padding-left: 0;
+}
+
+.dash-metrics .ui-stat-title {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body-sm);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.dash-metrics .ui-stat-icon {
+  width: 28px;
+  height: 28px;
+
+  background: var(--color-light-gray);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+}
+
+/* Yellow fails contrast as an icon colour on white, so the
+   warning state uses yellow as the background with black. */
+.dash-metrics .ui-stat-icon.warning {
+  background: var(--color-warning);
+  color: var(--color-black);
+}
+
+.dash-metrics .ui-stat-value {
+  margin-top: var(--space-3);
+
+  color: var(--color-text);
+  font-size: var(--font-size-heading-sm);
+  line-height: var(--line-height-heading-sm);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-metrics .ui-stat-description {
+  margin-top: var(--space-1);
+
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body-sm);
+}
+
+.dash-metrics .ui-stat-description.warning {
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+}
+
+
+/* =========================================================
+   DETAIL PANELS
+========================================================= */
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.dash-stack {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.dash-panel-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+
+  padding-bottom: var(--space-3);
+  border-bottom: var(--border-width-thin) solid var(--color-border-input);
+}
+
+.dash-panel-header h2 {
+  margin: 0;
+
+  color: var(--color-text);
+  font-size: var(--font-size-heading-xs);
+  line-height: var(--line-height-heading-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0;
+}
+
+.dash-panel-header p {
+  margin: 0;
+
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body-sm);
+}
+
+.dash-panel-link {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+
+  color: var(--color-primary);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.dash-panel-link:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.dash-panel-message {
+  margin: 0;
+  padding: var(--space-4) 0;
+
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+}
+
+.dash-panel-message a {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+
+/* =========================================================
+   RECENT EMPLOYEES
+========================================================= */
+
+.dash-people {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-person {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-4);
+
+  padding: var(--space-3) 0;
+  border-bottom: var(--border-width-thin) solid var(--color-border);
+}
+
+.dash-person:last-child {
+  border-bottom: 0;
+}
+
+.dash-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 36px;
+  height: 36px;
+
+  border-radius: var(--radius-round);
+  color: var(--color-white);
+
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.dash-person-info {
+  min-width: 0;
+}
+
+.dash-person-name,
+.dash-person-meta {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-person-name {
+  color: var(--color-text);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.dash-person-meta {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+}
+
+.dash-person-joined {
+  min-width: 110px;
+
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Status pill: the coloured dot carries the status colour,
+   the text stays dark so it passes contrast on every tint. */
+.dash-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 2px var(--space-2);
+
+  background: var(--color-light-gray);
+  border-radius: var(--radius-pill);
+  color: var(--color-near-black);
+
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.dash-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round);
+  background: var(--color-medium-gray);
+}
+
+.dash-status-active {
+  background: var(--color-success-soft);
+}
+
+.dash-status-active::before {
+  background: var(--color-success);
+}
+
+.dash-status-on-leave {
+  background: var(--color-warning-soft);
+}
+
+.dash-status-on-leave::before {
+  background: var(--color-warning);
+}
+
+
+/* =========================================================
+   DEPARTMENT BARS
+========================================================= */
+
+.dash-bars {
+  display: grid;
+  gap: var(--space-3);
+
+  margin: 0;
+  padding: var(--space-4) 0 0;
+  list-style: none;
+}
+
+.dash-bar-label {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+
+  color: var(--color-text);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body-sm);
+}
+
+.dash-bar-value {
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-bar-track {
+  height: 6px;
+  margin-top: 6px;
+
+  overflow: hidden;
+  background: var(--color-light-gray);
+  border-radius: var(--radius-pill);
+}
+
+.dash-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+}
+
+.dash-bar-more {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+}
+
+
+/* =========================================================
+   TASK STATUS
+========================================================= */
+
+.dash-tasks {
+  padding-top: var(--space-4);
+}
+
+.dash-tasks-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.dash-tasks-headline strong {
+  color: var(--color-text);
+  font-size: var(--font-size-heading-sm);
+  line-height: var(--line-height-heading-sm);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-tasks-headline span {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+}
+
+.dash-stacked-bar {
+  display: flex;
+  gap: 2px;
+
+  height: 10px;
+  margin: var(--space-3) 0 var(--space-4);
+
+  overflow: hidden;
+  background: var(--color-light-gray);
+  border-radius: var(--radius-pill);
+}
+
+.dash-segment-completed {
+  background: var(--color-success);
+}
+
+.dash-segment-in-progress {
+  background: var(--color-primary);
+}
+
+.dash-segment-pending {
+  background: var(--color-warning);
+}
+
+.dash-segment-to-do {
+  background: var(--color-medium-gray);
+}
+
+.dash-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-6);
+
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body-sm);
+}
+
+.dash-swatch {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-round);
+}
+
+.dash-legend-count {
+  margin-left: auto;
+
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-overdue {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  margin: var(--space-4) 0 0;
+  padding: var(--space-2) var(--space-3);
+
+  background: var(--color-error-soft);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body-sm);
+}
+
+.dash-overdue svg {
+  flex-shrink: 0;
+  color: var(--color-error);
+}
+
+
+/* =========================================================
+   LOADING SKELETONS
+   Grey shapes in place of content while data loads, so the
+   page doesn't jump when it arrives.
+========================================================= */
+
+.dash-skeleton {
+  display: block;
+
+  background: linear-gradient(
+    90deg,
+    var(--color-light-gray) 25%,
+    var(--color-off-white) 50%,
+    var(--color-light-gray) 75%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+
+  animation: dash-shimmer 1.4s ease-in-out infinite;
+}
+
+.dash-skeleton-line {
+  width: 70%;
+  height: 14px;
+}
+
+.dash-summary .dash-skeleton-line {
+  width: min(520px, 100%);
+  height: 20px;
+}
+
+.dash-person .dash-skeleton-line {
+  grid-column: 2 / -1;
+  width: 60%;
+}
+
+.dash-skeleton-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-round);
+}
+
+.dash-skeleton-bar {
+  width: 100%;
+  height: 10px;
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-pill);
+}
+
+.dash-skeleton-label {
+  width: 40%;
+  height: 14px;
+}
+
+.dash-skeleton-value {
+  width: 50%;
+  height: 32px;
+  margin-top: var(--space-3);
+}
+
+@keyframes dash-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-skeleton {
+    animation: none;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE  (§8 breakpoints)
+========================================================= */
+
+/* Tablet: panels stack, numbers go 2 × 2 */
+@media (max-width: 1023px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Left column sits flush with the page edge */
+  .dash-metrics > .ui-stat-card:nth-child(odd),
+  .dash-metrics > .dash-metric-skeleton:nth-child(odd) {
+    padding-left: 0;
+  }
+}
+
+/* Mobile: one column, smaller heading, larger tap targets */
+@media (max-width: 639px) {
+  .dash-intro {
+    margin-bottom: var(--space-6);
+  }
+
+  .dash-intro h1 {
+    font-size: 26px;      /* Heading SM −20% (§3, §8) */
+    line-height: 32px;
+  }
+
+  .dash-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-metrics > .ui-stat-card,
+  .dash-metrics > .dash-metric-skeleton {
+    padding: var(--space-4) 0;
+  }
+
+  .dash-person {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+  }
+
+  .dash-person-joined {
+    display: none;
+  }
+
+  .dash-panel-link,
+  .dash-attention-list a {
+    min-height: var(--touch-target-min);
+  }
+
+  .dash-legend {
+    grid-template-columns: 1fr;
+  }
+}
