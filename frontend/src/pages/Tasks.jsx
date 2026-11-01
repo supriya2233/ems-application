@@ -10,6 +10,7 @@ import PageHeader from '../components/common/PageHeader'
 import Button from '../components/common/Button'
 import AddTaskModal from '../components/tasks/AddTaskModal'
 import EditTaskModal from '../components/tasks/EditTaskModal'
+import { useConfirm, useToast } from '../components/common/feedbackContext'
 
 const columns = [
   {
@@ -31,6 +32,9 @@ const columns = [
 ]
 
 function Tasks() {
+  const confirm = useConfirm()
+  const toast = useToast()
+
   const [tasks, setTasks] = useState([])
 
   const [loading, setLoading] = useState(true)
@@ -127,9 +131,12 @@ function Tasks() {
    */
 
   const handleDeleteTask = async (taskId) => {
-    const confirmed = window.confirm(
-      'Are you sure you want to delete this task?'
-    )
+    const confirmed = await confirm({
+      title: 'Delete task?',
+      message: 'This task will be permanently removed.',
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
 
     if (!confirmed) {
       return
@@ -149,6 +156,8 @@ function Tasks() {
       if (editingTask?._id === taskId) {
         setEditingTask(null)
       }
+
+      toast.success('Task deleted')
     } catch (error) {
       setError(
         error.message || 'Failed to delete task'

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useToast } from './feedbackContext'
 
 function ModuleDashboard({
   eyebrow,
@@ -8,6 +9,7 @@ function ModuleDashboard({
   summary = [],
   sections = [],
 }) {
+  const toast = useToast()
   const [search, setSearch] = useState('')
 
   const filteredSections = useMemo(() => {
@@ -24,7 +26,7 @@ function ModuleDashboard({
   }, [sections, search])
 
   const handleAction = () => {
-    alert(
+    toast.info(
       `${actionLabel || 'This action'} will be connected to the backend later.`,
     )
   }

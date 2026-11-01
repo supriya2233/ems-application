@@ -7,8 +7,11 @@ import {
 } from '../services/employeeService'
 import Badge from '../components/common/Badge'
 import SearchBar from '../components/common/SearchBar'
+import { useToast } from '../components/common/feedbackContext'
 
 function Employees() {
+  const toast = useToast()
+
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -158,7 +161,7 @@ function Employees() {
       setShowModal(false)
     } catch (error) {
       console.error('Failed to add employee:', error)
-      alert(error.message)
+      toast.error(error.message)
     }
   }
 
@@ -187,7 +190,7 @@ function Employees() {
       setEditingEmployee(null)
     } catch (error) {
       console.error('Failed to update employee:', error)
-      alert(error.message)
+      toast.error(error.message)
     }
   }
 
@@ -208,9 +211,11 @@ function Employees() {
       )
 
       setDeletingEmployee(null)
+
+      toast.success('Employee deleted')
     } catch (error) {
       console.error('Failed to delete employee:', error)
-      alert(error.message)
+      toast.error(error.message)
     }
   }
 

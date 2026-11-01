@@ -10,6 +10,7 @@ import {
   updatePerformance,
   deletePerformance,
 } from '../services/performanceService'
+import { useConfirm, useToast } from '../components/common/feedbackContext'
 
 const initialForm = {
   reviewId: '',
@@ -34,6 +35,9 @@ const statusOptions = [
 ]
 
 function Performance() {
+  const confirm = useConfirm()
+  const toast = useToast()
+
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -210,9 +214,12 @@ function Performance() {
   }
 
   const handleDelete = async (record) => {
-    const confirmed = window.confirm(
-      `Delete performance review for ${record.employeeName}?`,
-    )
+    const confirmed = await confirm({
+      title: 'Delete performance review?',
+      message: `The performance review for ${record.employeeName} will be permanently removed.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
 
     if (!confirmed) return
 
@@ -226,6 +233,8 @@ function Performance() {
           (item) => item._id !== record._id,
         ),
       )
+
+      toast.success('Performance review deleted')
     } catch (err) {
       setError(
         err.message || 'Failed to delete performance record',

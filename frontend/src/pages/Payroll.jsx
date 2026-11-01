@@ -7,6 +7,7 @@ import {
   deletePayroll,
 } from '../services/payrollService'
 import { getEmployees } from '../services/employeeService'
+import { useConfirm, useToast } from '../components/common/feedbackContext'
 
 const payrollMonths = [
   'August 2026',
@@ -29,6 +30,9 @@ function formatCurrency(value) {
 }
 
 function Payroll() {
+  const confirm = useConfirm()
+  const toast = useToast()
+
   const [payrollEmployees, setPayrollEmployees] =
     useState([])
 
@@ -453,9 +457,12 @@ function Payroll() {
     employee,
   ) => {
     const confirmed =
-      window.confirm(
-        `Delete payroll record for ${employee.employeeName}?`,
-      )
+      await confirm({
+      title: 'Delete payroll record?',
+      message: `The payroll record for ${employee.employeeName} will be permanently removed.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
 
     if (!confirmed) {
       return
@@ -487,6 +494,8 @@ function Payroll() {
       setSummary(
         updatedSummary,
       )
+
+      toast.success('Payroll record deleted')
     } catch (error) {
       setError(
         error.message ||

@@ -10,6 +10,7 @@ import {
   updateDocument,
   deleteDocument,
 } from '../services/documentService'
+import { useConfirm, useToast } from '../components/common/feedbackContext'
 
 const initialForm = {
   documentId: '',
@@ -43,6 +44,9 @@ const statusOptions = [
 ]
 
 function Documents() {
+  const confirm = useConfirm()
+  const toast = useToast()
+
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -217,9 +221,12 @@ function Documents() {
   }
 
   const handleDelete = async (document) => {
-    const confirmed = window.confirm(
-      `Delete "${document.documentName}" for ${document.employeeName}?`,
-    )
+    const confirmed = await confirm({
+      title: 'Delete document?',
+      message: `"${document.documentName}" for ${document.employeeName} will be permanently removed.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
 
     if (!confirmed) return
 
@@ -233,6 +240,8 @@ function Documents() {
           (item) => item._id !== document._id,
         ),
       )
+
+      toast.success('Document deleted')
     } catch (err) {
       setError(
         err.message || 'Failed to delete document',

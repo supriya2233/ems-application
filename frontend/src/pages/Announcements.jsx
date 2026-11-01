@@ -3,8 +3,11 @@ import {
   announcements,
   announcementCategories,
 } from '../data/announcements'
+import { useToast } from '../components/common/feedbackContext'
 
 function Announcements() {
+  const toast = useToast()
+
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('All')
   const [showPinnedOnly, setShowPinnedOnly] = useState(false)
@@ -250,7 +253,7 @@ function Announcements() {
                 <button
                   className="announcement-read-button"
                   onClick={() =>
-                    alert(
+                    toast.info(
                       'Announcement details will be connected to the backend later.',
                     )
                   }
@@ -399,7 +402,7 @@ function Announcements() {
                 <button
                   className="primary-button"
                   onClick={() => {
-                    alert(
+                    toast.info(
                       'Announcement creation will be connected to the backend later.',
                     )
 

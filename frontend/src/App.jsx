@@ -6,6 +6,7 @@ import {
 } from 'react-router-dom'
 import Payroll from './pages/Payroll'
 import Layout from './components/layout/Layout'
+import FeedbackProvider from './components/common/FeedbackProvider'
 
 import Dashboard from './pages/Dashboard'
 import Employees from './pages/Employees'
@@ -29,6 +30,7 @@ import Help from './pages/Help'
 
 function App() {
   return (
+    <FeedbackProvider>
     <BrowserRouter>
 
       <Routes>
@@ -150,6 +152,7 @@ function App() {
       </Routes>
 
     </BrowserRouter>
+    </FeedbackProvider>
   )
 }
 
