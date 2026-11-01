@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import EmployeePicker from '../common/EmployeePicker'
+
 function AddTaskModal({
   onClose,
   onCreate,
@@ -8,6 +10,7 @@ function AddTaskModal({
     taskId: '',
     title: '',
     description: '',
+    assigneeId: '',
     assignee: '',
     department: '',
     priority: 'Medium',
@@ -24,6 +27,16 @@ function AddTaskModal({
     setFormData((previous) => ({
       ...previous,
       [name]: value,
+    }))
+  }
+
+  // The task belongs to the assignee's department.
+  const handleAssigneeChange = (employee) => {
+    setFormData((previous) => ({
+      ...previous,
+      assigneeId: employee?.employeeId || '',
+      assignee: employee?.name || '',
+      department: employee?.department || '',
     }))
   }
 
@@ -84,14 +97,9 @@ function AddTaskModal({
                 Task ID
               </label>
 
-              <input
-                id="taskId"
-                name="taskId"
-                value={formData.taskId}
-                onChange={handleChange}
-                placeholder="TASK002"
-                required
-              />
+              <output id="taskId" className="form-static">
+                Assigned automatically
+              </output>
 
             </div>
 
@@ -139,12 +147,10 @@ function AddTaskModal({
                 Assignee
               </label>
 
-              <input
+              <EmployeePicker
                 id="assignee"
-                name="assignee"
-                value={formData.assignee}
-                onChange={handleChange}
-                placeholder="Employee name"
+                value={formData.assigneeId}
+                onChange={handleAssigneeChange}
                 required
               />
 
@@ -156,14 +162,9 @@ function AddTaskModal({
                 Department
               </label>
 
-              <input
-                id="department"
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                placeholder="Engineering"
-                required
-              />
+              <output id="department" className="form-static">
+                {formData.department || 'Follows the assignee'}
+              </output>
 
             </div>
 

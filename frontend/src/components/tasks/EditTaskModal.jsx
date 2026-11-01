@@ -1,6 +1,8 @@
 
 import { useEffect, useState } from 'react'
 
+import EmployeePicker from '../common/EmployeePicker'
+
 function EditTaskModal({
   task,
   onClose,
@@ -9,6 +11,7 @@ function EditTaskModal({
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    assigneeId: '',
     assignee: '',
     department: '',
     priority: 'Medium',
@@ -27,6 +30,7 @@ function EditTaskModal({
     setFormData({
       title: task.title || '',
       description: task.description || '',
+      assigneeId: task.assigneeId || '',
       assignee: task.assignee || '',
       department: task.department || '',
       priority: task.priority || 'Medium',
@@ -43,6 +47,16 @@ function EditTaskModal({
     setFormData((previous) => ({
       ...previous,
       [name]: value,
+    }))
+  }
+
+  // The task belongs to the assignee's department.
+  const handleAssigneeChange = (employee) => {
+    setFormData((previous) => ({
+      ...previous,
+      assigneeId: employee?.employeeId || '',
+      assignee: employee?.name || '',
+      department: employee?.department || '',
     }))
   }
 
@@ -137,13 +151,18 @@ function EditTaskModal({
                 Assignee
               </label>
 
-              <input
+              <EmployeePicker
                 id="edit-assignee"
-                name="assignee"
-                value={formData.assignee}
-                onChange={handleChange}
+                value={formData.assigneeId}
+                onChange={handleAssigneeChange}
                 required
               />
+
+              {!formData.assigneeId && task?.assignee && (
+                <span className="form-hint">
+                  Previously “{task.assignee}”. Choose the employee to keep this task linked.
+                </span>
+              )}
 
             </div>
 
@@ -153,13 +172,9 @@ function EditTaskModal({
                 Department
               </label>
 
-              <input
-                id="edit-department"
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                required
-              />
+              <output id="edit-department" className="form-static">
+                {formData.department || 'Follows the assignee'}
+              </output>
 
             </div>
 

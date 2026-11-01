@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   getEmployees,
   createEmployee,
@@ -7,6 +8,7 @@ import {
 } from '../services/employeeService'
 import Badge from '../components/common/Badge'
 import SearchBar from '../components/common/SearchBar'
+import { getDepartments } from '../services/departmentService'
 import { useToast } from '../components/common/feedbackContext'
 
 function Employees() {
@@ -58,7 +60,22 @@ function Employees() {
   }, [])
 
   /*
-   * DEPARTMENTS
+   * DEPARTMENT RECORDS (for the add/edit form)
+   * An employee's department must be one of these, so names
+   * always match the Departments page.
+   */
+  const [departmentNames, setDepartmentNames] = useState([])
+
+  useEffect(() => {
+    getDepartments()
+      .then((data) =>
+        setDepartmentNames(data.map((department) => department.name).sort()),
+      )
+      .catch(() => setDepartmentNames([]))
+  }, [])
+
+  /*
+   * DEPARTMENTS (filter list, from the employees shown)
    */
   const departments = useMemo(() => {
     return [
@@ -128,7 +145,7 @@ function Employees() {
 
     try {
       const employee = {
-        employeeId: `EMP${String(employees.length + 1).padStart(3, '0')}`,
+        // The server assigns the next free ID (EMP004, EMP005, ...)
         ...newEmployee,
         initials: newEmployee.name
           .trim()
@@ -379,7 +396,12 @@ function Employees() {
                           key={employee._id}
                         >
                           <strong>
-                            {employee.name}
+                            <Link
+                              className="employee-profile-link"
+                              to={`/employees/${employee.employeeId}`}
+                            >
+                              {employee.name}
+                            </Link>
                           </strong>
 
                           <span>
@@ -495,7 +517,12 @@ function Employees() {
 
                         <div>
                           <strong>
-                            {employee.name}
+                            <Link
+                              className="employee-profile-link"
+                              to={`/employees/${employee.employeeId}`}
+                            >
+                              {employee.name}
+                            </Link>
                           </strong>
 
                           <span>
@@ -596,7 +623,12 @@ function Employees() {
                     </div>
 
                     <h3>
-                      {employee.name}
+                      <Link
+                        className="employee-profile-link"
+                        to={`/employees/${employee.employeeId}`}
+                      >
+                        {employee.name}
+                      </Link>
                     </h3>
 
                     <p>
@@ -719,12 +751,22 @@ function Employees() {
                 <label>
                   Department
 
-                  <input
+                  <select
                     name="department"
                     value={newEmployee.department}
                     onChange={handleInputChange}
                     required
-                  />
+                  >
+                    <option value="">
+                      Choose a department
+                    </option>
+
+                    {departmentNames.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
                 <label>
@@ -882,7 +924,7 @@ function Employees() {
                 <label>
                   Department
 
-                  <input
+                  <select
                     value={
                       editingEmployee.department
                     }
@@ -894,7 +936,21 @@ function Employees() {
                       })
                     }
                     required
-                  />
+                  >
+                    {!departmentNames.includes(
+                      editingEmployee.department,
+                    ) && (
+                      <option value={editingEmployee.department}>
+                        {editingEmployee.department} (not a department, please choose one)
+                      </option>
+                    )}
+
+                    {departmentNames.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
                 <label>

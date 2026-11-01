@@ -16,10 +16,6 @@ const emptyDepartment = {
   description: '',
   manager: '',
   color: 'blue',
-  employees: 0,
-  active: 0,
-  openTasks: 0,
-  completedTasks: 0,
 }
 
 function Departments() {
@@ -121,12 +117,7 @@ function Departments() {
   const handleOpenAdd = () => {
     setEditingDepartment(null)
 
-    const nextNumber = departments.length + 1
-
-    setFormData({
-      ...emptyDepartment,
-      departmentId: `DEP${String(nextNumber).padStart(3, '0')}`,
-    })
+    setFormData(emptyDepartment)
 
     setError('')
     setSuccess('')
@@ -149,10 +140,6 @@ function Departments() {
       description: department.description || '',
       manager: department.manager || '',
       color: department.color || 'blue',
-      employees: department.employees || 0,
-      active: department.active || 0,
-      openTasks: department.openTasks || 0,
-      completedTasks: department.completedTasks || 0,
     })
 
     setError('')
@@ -189,16 +176,12 @@ function Departments() {
       setSuccess('')
 
       const departmentData = {
-        departmentId: formData.departmentId.trim(),
         name: formData.name.trim(),
         code: formData.code.trim().toUpperCase(),
         description: formData.description.trim(),
         manager: formData.manager.trim(),
         color: formData.color,
-        employees: Number(formData.employees),
-        active: Number(formData.active),
-        openTasks: Number(formData.openTasks),
-        completedTasks: Number(formData.completedTasks),
+        // Headcount and task numbers are calculated by the server.
       }
 
       if (editingDepartment) {
@@ -599,14 +582,11 @@ function Departments() {
                 <label>
                   Department ID
 
-                  <input
-                    name="departmentId"
-                    value={formData.departmentId}
-                    onChange={handleInputChange}
-                    required
-                    disabled={Boolean(editingDepartment)}
-                  />
-
+                  <output className="form-static">
+                    {editingDepartment
+                      ? formData.departmentId
+                      : 'Assigned automatically'}
+                  </output>
                 </label>
 
                 <label>
@@ -683,57 +663,14 @@ function Departments() {
 
                 </label>
 
-                <label>
-                  Employees
 
-                  <input
-                    type="number"
-                    name="employees"
-                    min="0"
-                    value={formData.employees}
-                    onChange={handleInputChange}
-                  />
 
-                </label>
 
-                <label>
-                  Active Employees
 
-                  <input
-                    type="number"
-                    name="active"
-                    min="0"
-                    value={formData.active}
-                    onChange={handleInputChange}
-                  />
-
-                </label>
-
-                <label>
-                  Open Tasks
-
-                  <input
-                    type="number"
-                    name="openTasks"
-                    min="0"
-                    value={formData.openTasks}
-                    onChange={handleInputChange}
-                  />
-
-                </label>
-
-                <label>
-                  Completed Tasks
-
-                  <input
-                    type="number"
-                    name="completedTasks"
-                    min="0"
-                    value={formData.completedTasks}
-                    onChange={handleInputChange}
-                  />
-
-                </label>
+                <p className="form-hint form-full-width">
+                  Headcount and task numbers are counted
+                  automatically from Employees and Tasks.
+                </p>
 
               </div>
 
