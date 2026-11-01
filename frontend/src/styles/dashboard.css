@@ -693,3 +693,14 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Name links to the Employee 360° profile */
+.dash-person-name a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.dash-person-name a:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}

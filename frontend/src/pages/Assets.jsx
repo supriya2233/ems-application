@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import PageHeader from '../components/common/PageHeader'
 import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
+import EmployeePicker from '../components/common/EmployeePicker'
 import SearchBar from '../components/common/SearchBar'
 import Badge from '../components/common/Badge'
 import {
@@ -196,6 +197,28 @@ function Assets() {
     })
 
     setShowModal(true)
+  }
+
+  // The server copies the employee's name and department on save;
+  // they are mirrored here so the form shows them straight away.
+  const handleEmployeeChange = (employee) => {
+    setForm((current) => ({
+      ...current,
+      employeeId: employee?.employeeId || '',
+      employeeName: employee?.name || '',
+      // Picking someone marks a stocked asset as assigned, and
+      // clearing the holder puts it back in stock.
+      status:
+        employee && current.status === 'Available'
+          ? 'Assigned'
+          : !employee && current.status === 'Assigned'
+            ? 'Available'
+            : current.status,
+      assignedDate:
+        employee && !current.assignedDate
+          ? new Date().toISOString().split('T')[0]
+          : current.assignedDate,
+    }))
   }
 
   const handleChange = (event) => {
@@ -476,15 +499,9 @@ function Assets() {
           <div className="form-grid">
             <div className="form-group">
               <label htmlFor="assetId">Asset ID</label>
-              <input
-                id="assetId"
-                name="assetId"
-                value={form.assetId}
-                onChange={handleChange}
-                placeholder="AST001"
-                required
-                disabled={Boolean(editingAsset)}
-              />
+              <output id="assetId" className="form-static">
+                {editingAsset ? form.assetId : 'Assigned automatically'}
+              </output>
             </div>
 
             <div className="form-group">
@@ -527,24 +544,12 @@ function Assets() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="employeeId">Employee ID</label>
-              <input
-                id="employeeId"
-                name="employeeId"
+              <label htmlFor="employee-picker">Assigned to</label>
+              <EmployeePicker
+                id="employee-picker"
                 value={form.employeeId}
-                onChange={handleChange}
-                placeholder="EMP001"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="employeeName">Employee Name</label>
-              <input
-                id="employeeName"
-                name="employeeName"
-                value={form.employeeName}
-                onChange={handleChange}
-                placeholder="Arjun Kumar"
+                onChange={handleEmployeeChange}
+                allowUnassigned
               />
             </div>
 

@@ -1,4 +1,7 @@
 import Document from '../models/Document.js'
+import { AppError } from '../middleware/errorHandler.js'
+import { assignId } from '../services/idService.js'
+import { getLink, linkEmployee } from '../services/employeeLink.js'
 
 export const getDocuments = async (req, res) => {
   try {
@@ -43,49 +46,39 @@ export const getDocumentById = async (req, res) => {
 }
 
 export const createDocument = async (req, res) => {
-  try {
-    const document = await Document.create(req.body)
+  const body = { ...req.body }
+  await linkEmployee(body, getLink(Document))
+  await assignId('documents', Document, body)
 
-    res.status(201).json({
-      success: true,
-      data: document,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    })
-  }
+  const document = await Document.create(body)
+
+  res.status(201).json({
+    success: true,
+    message: 'Document created successfully',
+    data: document,
+  })
 }
 
 export const updateDocument = async (req, res) => {
-  try {
-    const document = await Document.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        returnDocument: 'after',
-        runValidators: true,
-      },
-    )
+  const body = { ...req.body }
+  delete body.documentId // IDs never change after creation
+  await linkEmployee(body, getLink(Document), { isUpdate: true })
 
-    if (!document) {
-      return res.status(404).json({
-        success: false,
-        message: 'Document not found',
-      })
-    }
+  const document = await Document.findByIdAndUpdate(
+    req.params.id,
+    body,
+    { returnDocument: 'after', runValidators: true },
+  )
 
-    res.json({
-      success: true,
-      data: document,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    })
+  if (!document) {
+    throw new AppError(404, 'Document not found')
   }
+
+  res.json({
+    success: true,
+    message: 'Document updated successfully',
+    data: document,
+  })
 }
 
 export const deleteDocument = async (req, res) => {

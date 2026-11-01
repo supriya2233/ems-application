@@ -1,307 +1,407 @@
-import { useNavigate, useParams } from 'react-router-dom'
-import { employees } from '../data/employees'
+import { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import {
+  ArrowLeft,
+  CalendarDays,
+  ClipboardCheck,
+  FileText,
+  Laptop,
+  ListChecks,
+  Mail,
+  Phone,
+  Star,
+  Wallet,
+} from 'lucide-react'
+
+import Badge from '../components/common/Badge'
+import EmptyState from '../components/common/EmptyState'
+import { getEmployeeOverview } from '../services/employeeService'
+import { getAvatarColor, getInitials } from '../utils/avatar'
+
+/*
+ * Employee 360°: one page with everything about a person.
+ * All data comes from a single request: GET /api/employees/:id/overview
+ */
+
+const formatDate = (value) =>
+  value
+    ? new Date(value).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : '—'
+
+const formatMoney = (value) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0))
+
+const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`
+
+/* A titled box with a link to the full module page */
+function Section({ title, icon: Icon, to, linkLabel, count, children }) {
+  return (
+    <section className="p360-section" aria-labelledby={`p360-${title}`}>
+      <header className="p360-section-header">
+        <h2 id={`p360-${title}`}>
+          <Icon size={16} aria-hidden="true" />
+          {title}
+          {count !== undefined && <span className="p360-count">{count}</span>}
+        </h2>
+
+        {to && (
+          <Link to={to} className="p360-section-link">
+            {linkLabel}
+          </Link>
+        )}
+      </header>
+
+      {children}
+    </section>
+  )
+}
+
+/* Rows of "main text / secondary text / badge" */
+function RecordList({ items, empty, render }) {
+  if (items.length === 0) {
+    return <p className="p360-empty">{empty}</p>
+  }
+
+  return <ul className="p360-list">{items.map(render)}</ul>
+}
+
+function Row({ title, meta, badge, aside }) {
+  return (
+    <li className="p360-row">
+      <div className="p360-row-text">
+        <strong>{title}</strong>
+        {meta && <span>{meta}</span>}
+      </div>
+      {aside && <span className="p360-row-aside">{aside}</span>}
+      {badge && <Badge>{badge}</Badge>}
+    </li>
+  )
+}
 
 function EmployeeProfile() {
   const { employeeId } = useParams()
-  const navigate = useNavigate()
 
-  const employee = employees.find(
-    (item) => item.id === employeeId
+  const [overview, setOverview] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let ignore = false
+
+    setLoading(true)
+    setError('')
+
+    getEmployeeOverview(employeeId)
+      .then((data) => {
+        if (!ignore) setOverview(data)
+      })
+      .catch((err) => {
+        if (!ignore) setError(err.message)
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false)
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [employeeId])
+
+  const backLink = (
+    <Link to="/employees" className="p360-back">
+      <ArrowLeft size={16} aria-hidden="true" />
+      Employees
+    </Link>
   )
 
-  if (!employee) {
+  if (loading) {
     return (
-      <div className="module-page">
-        <div className="profile-not-found">
-          <div className="profile-not-found-icon">?</div>
-
-          <h1>Employee not found</h1>
-
-          <p>
-            The employee you're looking for doesn't exist in the
-            current employee records.
-          </p>
-
-          <button
-            className="primary-button"
-            onClick={() => navigate('/employees')}
-          >
-            Back to Employees
-          </button>
+      <div className="p360-page" aria-busy="true">
+        {backLink}
+        <div className="p360-header">
+          <span className="p360-avatar ui-skeleton" />
+          <div className="p360-header-text">
+            <span className="ui-skeleton" style={{ width: 220, height: 28 }} />
+            <span className="ui-skeleton" style={{ width: 160, marginTop: 12 }} />
+          </div>
         </div>
+        <span className="visually-hidden">Loading employee…</span>
       </div>
     )
   }
 
-  const formatDate = (date) => {
-    if (!date) return '—'
-
-    return new Date(date).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    })
+  if (error || !overview) {
+    return (
+      <div className="p360-page">
+        {backLink}
+        <EmptyState
+          title="Employee not found"
+          description={
+            error === 'Employee not found'
+              ? `There is no employee with the ID ${employeeId}.`
+              : error || 'Something went wrong.'
+          }
+          action={
+            <Link to="/employees" className="ui-button ui-button-primary">
+              Back to Employees
+            </Link>
+          }
+        />
+      </div>
+    )
   }
 
+  const {
+    employee,
+    attendance,
+    leave,
+    payroll,
+    onboarding,
+    reviews,
+    documents,
+    assets,
+    tasks,
+  } = overview
+
+  const openTasks = tasks.filter((task) => task.status !== 'Completed')
+  const latestPay = payroll[0]
+  const latestReview = reviews[0]
+  const currentOnboarding = onboarding[0]
+
+  const stats = [
+    { label: 'Leave taken', value: plural(leave.summary.approvedDays, 'day'), hint: leave.summary.pendingDays > 0 ? `${leave.summary.pendingDays} pending` : 'No pending requests' },
+    { label: 'Open tasks', value: openTasks.length, hint: `${tasks.length} in total` },
+    { label: 'Assets held', value: assets.length, hint: assets.length ? assets.map((asset) => asset.category).join(', ') : 'None assigned' },
+    { label: 'Latest pay', value: latestPay ? formatMoney(latestPay.net) : '—', hint: latestPay ? latestPay.month : 'No payslips yet' },
+    { label: 'Last rating', value: latestReview ? `${latestReview.rating} / 5` : '—', hint: latestReview ? latestReview.reviewPeriod : 'Not reviewed yet' },
+  ]
+
+  const details = [
+    { label: 'Employee ID', value: employee.employeeId },
+    { label: 'Joined', value: formatDate(employee.joiningDate) },
+    { label: 'Employment', value: employee.employmentType },
+    { label: 'Manager', value: employee.manager || '—' },
+  ]
+
   return (
-    <div className="module-page employee-profile-page">
+    <div className="p360-page">
+      {backLink}
 
-      {/* Back */}
+      {/* =============== HEADER =============== */}
+      <header className="p360-header">
+        <span
+          className="p360-avatar"
+          style={{ background: getAvatarColor(employee.name) }}
+          aria-hidden="true"
+        >
+          {getInitials(employee.name)}
+        </span>
 
-      <button
-        className="back-button"
-        onClick={() => navigate('/employees')}
-      >
-        ← Back to Employees
-      </button>
-
-
-      {/* Profile Header */}
-
-      <section className="profile-header-card">
-
-        <div className="profile-main">
-
-          <div className="profile-avatar">
-            {employee.initials}
+        <div className="p360-header-text">
+          <div className="p360-title-row">
+            <h1>{employee.name}</h1>
+            <Badge>{employee.status}</Badge>
           </div>
 
-          <div className="profile-heading">
+          <p className="p360-subtitle">
+            {employee.role} · {employee.department}
+          </p>
 
-            <div className="profile-name-row">
+          <ul className="p360-contact">
+            <li>
+              <Mail size={14} aria-hidden="true" />
+              <a href={`mailto:${employee.email}`}>{employee.email}</a>
+            </li>
+            {employee.phone && (
+              <li>
+                <Phone size={14} aria-hidden="true" />
+                <a href={`tel:${employee.phone.replace(/\s/g, '')}`}>{employee.phone}</a>
+              </li>
+            )}
+          </ul>
+        </div>
 
-              <h1>{employee.name}</h1>
-
-              <span
-                className={`profile-status ${
-                  employee.status
-                    .toLowerCase()
-                    .replaceAll(' ', '-')
-                }`}
-              >
-                {employee.status}
-              </span>
-
+        <dl className="p360-details">
+          {details.map((item) => (
+            <div key={item.label}>
+              <dt>{item.label}</dt>
+              <dd>{item.value}</dd>
             </div>
+          ))}
+        </dl>
+      </header>
 
-            <p className="profile-role">
-              {employee.role}
-            </p>
-
-            <p className="profile-department">
-              {employee.department}
-            </p>
-
+      {/* =============== AT A GLANCE =============== */}
+      <section className="p360-stats" aria-label="At a glance">
+        {stats.map((stat) => (
+          <div className="p360-stat" key={stat.label}>
+            <span className="p360-stat-label">{stat.label}</span>
+            <strong>{stat.value}</strong>
+            <span className="p360-stat-hint">{stat.hint}</span>
           </div>
-
-        </div>
-
-        <div className="profile-actions">
-
-          <button className="secondary-button">
-            Edit Profile
-          </button>
-
-          <button className="primary-button">
-            More Actions
-          </button>
-
-        </div>
-
+        ))}
       </section>
 
+      {/* =============== MODULES =============== */}
+      <div className="p360-grid">
+        <Section title="Tasks" icon={ListChecks} to="/tasks" linkLabel="All tasks" count={tasks.length}>
+          <RecordList
+            items={tasks}
+            empty="No tasks assigned."
+            render={(task) => (
+              <Row
+                key={task._id}
+                title={task.title}
+                meta={`${task.priority} priority · due ${formatDate(task.dueDate)}`}
+                badge={task.status}
+              />
+            )}
+          />
+        </Section>
 
-      {/* Quick information */}
+        <Section title="Leave" icon={CalendarDays} to="/leave" linkLabel="Leave management" count={leave.records.length}>
+          {Object.keys(leave.summary.byType).length > 0 && (
+            <p className="p360-note">
+              Approved:{' '}
+              {Object.entries(leave.summary.byType)
+                .map(([type, days]) => `${type} ${days}d`)
+                .join(' · ')}
+            </p>
+          )}
+          <RecordList
+            items={leave.records.slice(0, 6)}
+            empty="No leave requests."
+            render={(item) => (
+              <Row
+                key={item._id}
+                title={`${item.type} leave`}
+                meta={`${formatDate(item.from)} – ${formatDate(item.to)} · ${plural(item.days, 'day')}`}
+                badge={item.status}
+              />
+            )}
+          />
+        </Section>
 
-      <section className="profile-summary-grid">
-
-        <div className="profile-summary-card">
-          <span>Employee ID</span>
-          <strong>{employee.id}</strong>
-        </div>
-
-        <div className="profile-summary-card">
-          <span>Department</span>
-          <strong>{employee.department}</strong>
-        </div>
-
-        <div className="profile-summary-card">
-          <span>Employment Type</span>
-          <strong>{employee.employmentType}</strong>
-        </div>
-
-        <div className="profile-summary-card">
-          <span>Manager</span>
-          <strong>{employee.manager}</strong>
-        </div>
-
-      </section>
-
-
-      {/* Main content */}
-
-      <div className="profile-content-grid">
-
-        {/* Personal information */}
-
-        <section className="content-card profile-section">
-
-          <div className="profile-section-heading">
-            <div>
-              <h2>Personal Information</h2>
-              <p>Basic contact information.</p>
+        <Section title="Attendance" icon={ClipboardCheck} to="/attendance" linkLabel="Attendance" count={attendance.recent.length}>
+          {attendance.recent.length > 0 && (
+            <div className="p360-badges" aria-label="Last 30 records by status">
+              {Object.entries(attendance.summary).map(([status, count]) => (
+                <Badge key={status}>{`${status} ${count}`}</Badge>
+              ))}
             </div>
-          </div>
+          )}
+          <RecordList
+            items={attendance.recent.slice(0, 5)}
+            empty="No attendance recorded."
+            render={(item) => (
+              <Row
+                key={item._id}
+                title={formatDate(item.date)}
+                meta={item.checkIn ? `${item.checkIn} – ${item.checkOut || '…'}` : undefined}
+                badge={item.status}
+              />
+            )}
+          />
+        </Section>
 
-          <div className="profile-details-grid">
+        <Section title="Payslips" icon={Wallet} to="/payroll" linkLabel="Payroll" count={payroll.length}>
+          <RecordList
+            items={payroll}
+            empty="No payroll records."
+            render={(item) => (
+              <Row
+                key={item._id}
+                title={item.month}
+                meta={`Basic ${formatMoney(item.basic)} · deductions ${formatMoney(item.deductions)}`}
+                aside={formatMoney(item.net)}
+                badge={item.status}
+              />
+            )}
+          />
+        </Section>
 
-            <div className="profile-detail">
-              <span>Email</span>
-              <strong>{employee.email}</strong>
-            </div>
+        <Section title="Assets" icon={Laptop} to="/assets" linkLabel="Assets" count={assets.length}>
+          <RecordList
+            items={assets}
+            empty="No assets assigned."
+            render={(asset) => (
+              <Row
+                key={asset._id}
+                title={asset.assetName}
+                meta={`${asset.assetId} · ${asset.category} · since ${formatDate(asset.assignedDate)}`}
+                badge={asset.condition}
+              />
+            )}
+          />
+        </Section>
 
-            <div className="profile-detail">
-              <span>Phone</span>
-              <strong>{employee.phone}</strong>
-            </div>
+        <Section title="Documents" icon={FileText} to="/documents" linkLabel="Documents" count={documents.length}>
+          <RecordList
+            items={documents}
+            empty="No documents on file."
+            render={(item) => (
+              <Row
+                key={item._id}
+                title={item.documentName}
+                meta={`${item.documentType}${item.expiryDate ? ` · expires ${formatDate(item.expiryDate)}` : ''}`}
+                badge={item.status}
+              />
+            )}
+          />
+        </Section>
 
-          </div>
+        <Section title="Reviews" icon={Star} to="/performance" linkLabel="Performance" count={reviews.length}>
+          <RecordList
+            items={reviews}
+            empty="No performance reviews yet."
+            render={(review) => (
+              <Row
+                key={review._id}
+                title={review.reviewPeriod}
+                meta={`Reviewed by ${review.reviewer} · ${formatDate(review.reviewDate)}`}
+                aside={`${review.rating} / 5`}
+                badge={review.status}
+              />
+            )}
+          />
+        </Section>
 
-        </section>
-
-
-        {/* Employment information */}
-
-        <section className="content-card profile-section">
-
-          <div className="profile-section-heading">
-            <div>
-              <h2>Employment Information</h2>
-              <p>Current employment details.</p>
-            </div>
-          </div>
-
-          <div className="profile-details-grid">
-
-            <div className="profile-detail">
-              <span>Role</span>
-              <strong>{employee.role}</strong>
-            </div>
-
-            <div className="profile-detail">
-              <span>Department</span>
-              <strong>{employee.department}</strong>
-            </div>
-
-            <div className="profile-detail">
-              <span>Joining Date</span>
-              <strong>
-                {formatDate(employee.joiningDate)}
-              </strong>
-            </div>
-
-            <div className="profile-detail">
-              <span>Employment Type</span>
-              <strong>{employee.employmentType}</strong>
-            </div>
-
-            <div className="profile-detail">
-              <span>Reporting Manager</span>
-              <strong>{employee.manager}</strong>
-            </div>
-
-            <div className="profile-detail">
-              <span>Current Status</span>
-              <strong>{employee.status}</strong>
-            </div>
-
-          </div>
-
-        </section>
-
-
-        {/* Leave information */}
-
-        {employee.status === 'On Leave' && (
-          <section className="content-card profile-section leave-profile-card">
-
-            <div className="profile-section-heading">
-
-              <div>
-                <h2>Current Leave</h2>
-                <p>Current employee leave information.</p>
-              </div>
-
-              <span className="profile-leave-badge">
-                {employee.leaveType}
-              </span>
-
-            </div>
-
-            <div className="profile-details-grid">
-
-              <div className="profile-detail">
-                <span>Leave Type</span>
-                <strong>{employee.leaveType}</strong>
-              </div>
-
-              <div className="profile-detail">
-                <span>From</span>
-                <strong>
-                  {formatDate(employee.leaveFrom)}
-                </strong>
-              </div>
-
-              <div className="profile-detail">
-                <span>To</span>
-                <strong>
-                  {formatDate(employee.leaveTo)}
-                </strong>
-              </div>
-
-            </div>
-
-          </section>
-        )}
-
-
-        {/* Activity placeholder */}
-
-        <section className="content-card profile-section">
-
-          <div className="profile-section-heading">
-
-            <div>
-              <h2>Employee Activity</h2>
-              <p>
-                Attendance, leave, performance and task activity
-                will appear here.
+        <Section title="Onboarding" icon={ClipboardCheck} to="/onboarding" linkLabel="Onboarding">
+          {currentOnboarding ? (
+            <>
+              <p className="p360-note">
+                {currentOnboarding.onboardingType} · started {formatDate(currentOnboarding.joiningDate)}{' '}
+                <Badge>{currentOnboarding.status}</Badge>
               </p>
-            </div>
-
-          </div>
-
-          <div className="profile-coming-soon">
-
-            <div className="profile-coming-icon">
-              +
-            </div>
-
-            <div>
-              <strong>Employee activity</strong>
-
-              <p>
-                This section is prepared for backend-powered
-                employee activity and history.
-              </p>
-            </div>
-
-          </div>
-
-        </section>
-
+              <ul className="p360-checklist">
+                {[
+                  ['documents', 'Documents collected'],
+                  ['orientation', 'Orientation'],
+                  ['equipment', 'Equipment'],
+                  ['systemAccess', 'System access'],
+                ].map(([field, label]) => (
+                  <li key={field} data-done={Boolean(currentOnboarding[field])}>
+                    {label}
+                    <span className="visually-hidden">
+                      {currentOnboarding[field] ? ' (done)' : ' (to do)'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="p360-empty">No onboarding record.</p>
+          )}
+        </Section>
       </div>
-
     </div>
   )
 }

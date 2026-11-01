@@ -61,3 +61,19 @@ export const deleteEmployee = async (id) => {
 
   return result
 }
+
+/*
+ * Everything about one employee from every module (Employee 360°).
+ * `id` can be the employee ID (EMP001) or the database _id.
+ */
+export const getEmployeeOverview = async (id) => {
+  const response = await fetch(`${API_URL}/${encodeURIComponent(id)}/overview`)
+
+  const result = await response.json()
+
+  if (!response.ok) {
+    throw new Error(result.message || 'Failed to load employee')
+  }
+
+  return result.data
+}

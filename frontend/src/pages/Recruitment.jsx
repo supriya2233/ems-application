@@ -410,14 +410,10 @@ function Recruitment() {
           >
             <div className="form-grid">
               <div className="form-group">
-                <label>Candidate ID</label>
-                <input
-                  name="candidateId"
-                  value={form.candidateId}
-                  onChange={handleChange}
-                  required
-                  placeholder="CAN001"
-                />
+                <label htmlFor="candidateId">Candidate ID</label>
+                <output id="candidateId" className="form-static">
+                  {editingCandidate ? form.candidateId : 'Assigned automatically'}
+                </output>
               </div>
 
               <div className="form-group">

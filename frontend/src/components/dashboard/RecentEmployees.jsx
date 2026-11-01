@@ -127,7 +127,9 @@ function RecentEmployees() {
 
                 <div className="dash-person-info">
                   <p className="dash-person-name">
-                    {employee.name}
+                    <Link to={`/employees/${employee.employeeId}`}>
+                      {employee.name}
+                    </Link>
                   </p>
                   <p className="dash-person-meta">
                     {employee.role || 'Employee'}

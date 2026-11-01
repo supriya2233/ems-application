@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import PageHeader from '../components/common/PageHeader'
 import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
+import EmployeePicker from '../components/common/EmployeePicker'
 import SearchBar from '../components/common/SearchBar'
 import Badge from '../components/common/Badge'
 import {
@@ -114,7 +115,6 @@ function Onboarding() {
 
     setForm({
       ...initialForm,
-      onboardingId: `ONB${String(records.length + 1).padStart(3, '0')}`,
     })
 
     setShowModal(true)
@@ -152,6 +152,22 @@ function Onboarding() {
     setShowModal(false)
     setEditingRecord(null)
     setForm(initialForm)
+  }
+
+  // The server copies the employee's name and department on save;
+  // they are mirrored here so the form shows them straight away.
+  const handleEmployeeChange = (employee) => {
+    setForm((current) => ({
+      ...current,
+      employeeId: employee?.employeeId || '',
+      employeeName: employee?.name || '',
+      department: employee?.department || '',
+      // A new hire's onboarding starts on their joining date.
+      joiningDate:
+        employee?.joiningDate && !current.joiningDate
+          ? employee.joiningDate.split('T')[0]
+          : current.joiningDate,
+    }))
   }
 
   const handleChange = (event) => {
@@ -464,51 +480,27 @@ function Onboarding() {
           >
             <div className="form-grid">
               <div className="form-group">
-                <label>Onboarding ID</label>
-
-                <input
-                  name="onboardingId"
-                  value={form.onboardingId}
-                  onChange={handleChange}
-                  required
-                  disabled={Boolean(editingRecord)}
-                />
+                <label htmlFor="onboardingId">Onboarding ID</label>
+                <output id="onboardingId" className="form-static">
+                  {editingRecord ? form.onboardingId : 'Assigned automatically'}
+                </output>
               </div>
 
               <div className="form-group">
-                <label>Employee ID</label>
-
-                <input
-                  name="employeeId"
+                <label htmlFor="employee-picker">Employee</label>
+                <EmployeePicker
+                  id="employee-picker"
                   value={form.employeeId}
-                  onChange={handleChange}
+                  onChange={handleEmployeeChange}
                   required
-                  placeholder="EMP002"
                 />
               </div>
 
               <div className="form-group">
-                <label>Employee Name</label>
-
-                <input
-                  name="employeeName"
-                  value={form.employeeName}
-                  onChange={handleChange}
-                  required
-                  placeholder="Employee name"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Department</label>
-
-                <input
-                  name="department"
-                  value={form.department}
-                  onChange={handleChange}
-                  required
-                  placeholder="Engineering"
-                />
+                <label htmlFor="employee-department">Department</label>
+                <output id="employee-department" className="form-static">
+                  {form.department || 'Filled in from the employee'}
+                </output>
               </div>
 
               <div className="form-group">

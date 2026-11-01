@@ -1,4 +1,6 @@
 import Attendance from '../models/Attendance.js'
+import { AppError } from '../middleware/errorHandler.js'
+import { getLink, linkEmployee } from '../services/employeeLink.js'
 
 export const getAttendance = async (req, res) => {
   try {
@@ -47,52 +49,37 @@ export const getAttendanceById = async (req, res) => {
 }
 
 export const createAttendance = async (req, res) => {
-  try {
-    const attendance =
-      await Attendance.create(req.body)
+  const body = { ...req.body }
+  await linkEmployee(body, getLink(Attendance))
 
-    res.status(201).json({
-      success: true,
-      message: 'Attendance marked successfully',
-      data: attendance,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to mark attendance',
-      error: error.message,
-    })
-  }
+  const attendance = await Attendance.create(body)
+
+  res.status(201).json({
+    success: true,
+    message: 'Attendance record created successfully',
+    data: attendance,
+  })
 }
 
 export const updateAttendance = async (req, res) => {
-  try {
-    const attendance =
-      await Attendance.findByIdAndUpdate(
-        req.params.id,
-        req.body,
-        { returnDocument: 'after', runValidators: true },
-      )
+  const body = { ...req.body }
+  await linkEmployee(body, getLink(Attendance), { isUpdate: true })
 
-    if (!attendance) {
-      return res.status(404).json({
-        success: false,
-        message: 'Attendance record not found',
-      })
-    }
+  const attendance = await Attendance.findByIdAndUpdate(
+    req.params.id,
+    body,
+    { returnDocument: 'after', runValidators: true },
+  )
 
-    res.status(200).json({
-      success: true,
-      message: 'Attendance updated successfully',
-      data: attendance,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to update attendance',
-      error: error.message,
-    })
+  if (!attendance) {
+    throw new AppError(404, 'Attendance record not found')
   }
+
+  res.json({
+    success: true,
+    message: 'Attendance record updated successfully',
+    data: attendance,
+  })
 }
 
 export const deleteAttendance = async (req, res) => {

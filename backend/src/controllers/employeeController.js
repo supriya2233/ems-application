@@ -1,4 +1,8 @@
 import Employee from '../models/Employee.js'
+import { AppError } from '../middleware/errorHandler.js'
+import { assignId } from '../services/idService.js'
+import { assertDepartmentExists, propagateEmployeeChange } from '../services/employeeLink.js'
+import { getEmployeeOverview } from '../services/employeeOverview.js'
 
 export const getEmployees = async (req, res) => {
   try {
@@ -43,50 +47,65 @@ export const getEmployeeById = async (req, res) => {
 }
 
 export const createEmployee = async (req, res) => {
-  try {
-    const employee = await Employee.create(req.body)
+  const body = { ...req.body }
 
-    res.status(201).json({
-      success: true,
-      message: 'Employee created successfully',
-      data: employee,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to create employee',
-      error: error.message,
-    })
-  }
+  await assertDepartmentExists(body.department)
+  await assignId('employees', Employee, body)
+
+  const employee = await Employee.create(body)
+
+  res.status(201).json({
+    success: true,
+    message: 'Employee created successfully',
+    data: employee,
+  })
 }
 
 export const updateEmployee = async (req, res) => {
-  try {
-    const employee = await Employee.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { returnDocument: 'after', runValidators: true },
-    )
+  const body = { ...req.body }
+  delete body.employeeId // the ID links every other module; it never changes
 
-    if (!employee) {
-      return res.status(404).json({
-        success: false,
-        message: 'Employee not found',
-      })
-    }
+  const before = await Employee.findById(req.params.id).lean()
 
-    res.status(200).json({
-      success: true,
-      message: 'Employee updated successfully',
-      data: employee,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to update employee',
-      error: error.message,
-    })
+  if (!before) {
+    throw new AppError(404, 'Employee not found')
   }
+
+  if (body.department !== undefined && body.department !== before.department) {
+    await assertDepartmentExists(body.department)
+  }
+
+  const employee = await Employee.findByIdAndUpdate(
+    req.params.id,
+    body,
+    { returnDocument: 'after', runValidators: true },
+  )
+
+  await propagateEmployeeChange(before, employee)
+
+  res.status(200).json({
+    success: true,
+    message: 'Employee updated successfully',
+    data: employee,
+  })
+}
+
+/*
+ * GET /api/employees/:id/overview
+ * Everything about one person, from every module, in one request.
+ * :id can be the business ID (EMP001) or the database _id.
+ */
+export const getEmployeeOverviewHandler = async (req, res) => {
+  const overview = await getEmployeeOverview(req.params.id)
+
+  if (!overview) {
+    throw new AppError(404, 'Employee not found')
+  }
+
+  res.json({
+    success: true,
+    data: overview,
+  })
 }
 
 export const deleteEmployee = async (req, res) => {

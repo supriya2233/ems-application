@@ -6,11 +6,14 @@ import {
   createEmployee,
   updateEmployee,
   deleteEmployee,
+  getEmployeeOverviewHandler,
 } from '../controllers/employeeController.js'
 
 const router = express.Router()
 
 router.get('/', getEmployees)
+router.get('/:id/overview', getEmployeeOverviewHandler)
+
 router.get('/:id', getEmployeeById)
 router.post('/', createEmployee)
 router.put('/:id', updateEmployee)
