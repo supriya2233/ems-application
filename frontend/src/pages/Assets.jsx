@@ -10,6 +10,7 @@ import {
   updateAsset,
   deleteAsset,
 } from '../services/assetService'
+import { useConfirm, useToast } from '../components/common/feedbackContext'
 
 const initialForm = {
   assetId: '',
@@ -99,6 +100,9 @@ const formatValue = (value) => {
 }
 
 function Assets() {
+  const confirm = useConfirm()
+  const toast = useToast()
+
   const [assets, setAssets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -240,9 +244,12 @@ function Assets() {
   }
 
   const handleDelete = async (asset) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${asset.assetName}"?`,
-    )
+    const confirmed = await confirm({
+      title: 'Delete asset?',
+      message: `"${asset.assetName}" will be permanently removed.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
 
     if (!confirmed) return
 
@@ -254,6 +261,8 @@ function Assets() {
       setAssets((current) =>
         current.filter((item) => item._id !== asset._id),
       )
+
+      toast.success('Asset deleted')
     } catch (err) {
       setError(err.message || 'Failed to delete asset')
     }

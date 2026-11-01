@@ -8,6 +8,7 @@ import {
   deleteAttendance,
 } from '../services/attendanceService'
 import { getEmployees } from '../services/employeeService'
+import { useConfirm, useToast } from '../components/common/feedbackContext'
 
 const statusOptions = [
   'All',
@@ -18,6 +19,9 @@ const statusOptions = [
 ]
 
 function Attendance() {
+  const confirm = useConfirm()
+  const toast = useToast()
+
   const [attendance, setAttendance] = useState([])
   const [employees, setEmployees] = useState([])
 
@@ -512,9 +516,12 @@ function Attendance() {
 
   const handleDelete = async (id) => {
     const confirmed =
-      window.confirm(
-        'Are you sure you want to delete this attendance record?',
-      )
+      await confirm({
+      title: 'Delete attendance record?',
+      message: 'This attendance record will be permanently removed.',
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
 
     if (!confirmed) {
       return
@@ -531,6 +538,8 @@ function Attendance() {
             record._id !== id,
         ),
       )
+
+      toast.success('Attendance record deleted')
     } catch (error) {
       setError(
         error.message ||

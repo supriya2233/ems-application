@@ -7,6 +7,7 @@ import {
 } from '../services/departmentService'
 import PageHeader from '../components/common/PageHeader'
 import Button from '../components/common/Button'
+import { useConfirm } from '../components/common/feedbackContext'
 
 const emptyDepartment = {
   departmentId: '',
@@ -22,6 +23,8 @@ const emptyDepartment = {
 }
 
 function Departments() {
+  const confirm = useConfirm()
+
   const [departments, setDepartments] = useState([])
 
   const [loading, setLoading] = useState(true)
@@ -247,9 +250,12 @@ function Departments() {
    */
 
   const handleDelete = async (department) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${department.name}"?`,
-    )
+    const confirmed = await confirm({
+      title: 'Delete department?',
+      message: `"${department.name}" will be permanently removed.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
 
     if (!confirmed) return
 

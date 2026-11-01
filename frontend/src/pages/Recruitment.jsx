@@ -10,6 +10,7 @@ import {
   updateRecruitment,
   deleteRecruitment,
 } from '../services/recruitmentService'
+import { useConfirm, useToast } from '../components/common/feedbackContext'
 
 const initialForm = {
   candidateId: '',
@@ -34,6 +35,9 @@ const statusOptions = [
 ]
 
 function Recruitment() {
+  const confirm = useConfirm()
+  const toast = useToast()
+
   const [candidates, setCandidates] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -180,9 +184,12 @@ function Recruitment() {
   }
 
   const handleDelete = async (candidate) => {
-    const confirmed = window.confirm(
-      `Delete recruitment record for ${candidate.candidateName}?`,
-    )
+    const confirmed = await confirm({
+      title: 'Delete candidate?',
+      message: `The record for ${candidate.candidateName} will be permanently removed.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
 
     if (!confirmed) return
 
@@ -194,6 +201,8 @@ function Recruitment() {
       setCandidates((current) =>
         current.filter((item) => item._id !== candidate._id),
       )
+
+      toast.success('Candidate deleted')
     } catch (err) {
       setError(err.message || 'Failed to delete recruitment record')
     }

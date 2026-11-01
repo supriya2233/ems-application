@@ -6,6 +6,7 @@ import {
   deleteLeave,
 } from '../services/leaveService'
 import { getEmployees } from '../services/employeeService'
+import { useConfirm, useToast } from '../components/common/feedbackContext'
 
 const leaveTypes = [
   'Annual',
@@ -22,6 +23,9 @@ const statusOptions = [
 ]
 
 function LeaveManagement() {
+  const confirm = useConfirm()
+  const toast = useToast()
+
   const [leaves, setLeaves] = useState([])
   const [employees, setEmployees] = useState([])
 
@@ -436,9 +440,12 @@ function LeaveManagement() {
 
   const handleDelete = async (id) => {
     const confirmed =
-      window.confirm(
-        'Are you sure you want to delete this leave request?',
-      )
+      await confirm({
+      title: 'Delete leave request?',
+      message: 'This leave request will be permanently removed.',
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
 
     if (!confirmed) {
       return
@@ -455,6 +462,8 @@ function LeaveManagement() {
             leave._id !== id,
         ),
       )
+
+      toast.success('Leave request deleted')
     } catch (error) {
       setError(
         error.message ||

@@ -1,9 +1,20 @@
+/*
+ * Page title block.
+ *
+ * Some pages pass `subtitle` / `actions` instead of
+ * `description` / `action`; both spellings are accepted.
+ */
 function PageHeader({
   eyebrow,
   title,
   description,
+  subtitle,
   action,
+  actions,
 }) {
+  const text = description ?? subtitle
+  const actionArea = action ?? actions
+
   return (
     <div className="ui-page-header">
 
@@ -17,15 +28,15 @@ function PageHeader({
 
         <h1>{title}</h1>
 
-        {description && (
-          <p>{description}</p>
+        {text && (
+          <p>{text}</p>
         )}
 
       </div>
 
-      {action && (
+      {actionArea && (
         <div className="ui-page-header-action">
-          {action}
+          {actionArea}
         </div>
       )}
 

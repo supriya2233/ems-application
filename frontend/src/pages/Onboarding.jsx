@@ -10,6 +10,7 @@ import {
   updateOnboarding,
   deleteOnboarding,
 } from '../services/onboardingService'
+import { useConfirm, useToast } from '../components/common/feedbackContext'
 
 const initialForm = {
   onboardingId: '',
@@ -39,6 +40,9 @@ const typeOptions = [
 ]
 
 function Onboarding() {
+  const confirm = useConfirm()
+  const toast = useToast()
+
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -194,9 +198,12 @@ function Onboarding() {
   }
 
   const handleDelete = async (record) => {
-    const confirmed = window.confirm(
-      `Delete onboarding record for ${record.employeeName}?`,
-    )
+    const confirmed = await confirm({
+      title: 'Delete onboarding record?',
+      message: `The onboarding record for ${record.employeeName} will be permanently removed.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
 
     if (!confirmed) return
 
@@ -208,6 +215,8 @@ function Onboarding() {
       setRecords((current) =>
         current.filter((item) => item._id !== record._id),
       )
+
+      toast.success('Onboarding record deleted')
     } catch (err) {
       setError(
         err.message || 'Failed to delete onboarding record',

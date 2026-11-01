@@ -7,6 +7,7 @@ import App from './App.jsx'
 import './styles/tokens.css'
 import './index.css'
 import './styles/layout.css'
+import './styles/components.css'
 import './styles/dashboard.css'
 
 createRoot(document.getElementById('root')).render(
