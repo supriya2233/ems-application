@@ -14,7 +14,12 @@ import onboardingRoutes from './routes/onboardingRoutes.js'
 import performanceRoutes from './routes/performanceRoutes.js'
 import documentRoutes from './routes/documentRoutes.js'
 import assetRoutes from './routes/assetRoutes.js'
+import notificationRoutes from './routes/notificationRoutes.js'
+import activityRoutes from './routes/activityRoutes.js'
 import { errorHandler, notFound } from './middleware/errorHandler.js'
+import { clientContext } from './services/events.js'
+import { registerListeners } from './services/listeners.js'
+import { streamHandler } from './services/liveStream.js'
 
 
 dotenv.config()
@@ -23,6 +28,13 @@ const app = express()
 
 app.use(cors())
 app.use(express.json())
+
+// Remembers which browser tab sent the request (X-Client-Id), so
+// that tab can skip the toast for its own action.
+app.use(clientContext)
+
+// What happens after a save: activity log, notifications, live push.
+registerListeners()
 
 app.get('/api/health', (req, res) => {
   res.json({
@@ -46,6 +58,11 @@ app.use('/api/onboarding', onboardingRoutes)
 app.use('/api/performance', performanceRoutes)
 app.use('/api/documents', documentRoutes)
 app.use('/api/assets', assetRoutes)
+app.use('/api/notifications', notificationRoutes)
+app.use('/api/activity', activityRoutes)
+
+// Live updates (Server-Sent Events): one long-lived connection per tab.
+app.get('/api/stream', streamHandler)
 
 // Unknown /api URLs get a JSON 404; any thrown error ends up in
 // errorHandler, which sends a readable message.
