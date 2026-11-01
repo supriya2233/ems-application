@@ -221,19 +221,6 @@ export async function syncEmployeeLeaveStatus({ employeeId, today = new Date() }
   return changed
 }
 
-/* Runs the status check now and then every hour. */
-export function startLeaveStatusJob(intervalMs = 60 * 60 * 1000) {
-  const run = () =>
-    syncEmployeeLeaveStatus()
-      .then((changed) => {
-        if (changed > 0) console.log(`[leave-status] updated ${changed} employee status(es)`)
-      })
-      .catch((error) => console.error('[leave-status] failed:', error.message))
-
-  run()
-  return setInterval(run, intervalMs)
-}
-
 /* Everything that follows a leave change, in one place. */
 export async function afterLeaveChange(leave, { deleted = false } = {}) {
   await syncLeaveAttendance(leave, { deleted })

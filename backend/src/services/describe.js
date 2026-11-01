@@ -196,7 +196,7 @@ const MODULES = {
         ? {
             action: 'completed',
             summary: `Completed onboarding for ${after.employeeName}`,
-            notify: { title: 'Onboarding complete', message: `${after.employeeName} has finished onboarding.`, tone: 'success' },
+            // The notification comes from services/onboardingService.js
           }
         : null,
   },

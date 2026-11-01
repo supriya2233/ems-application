@@ -1,17 +1,19 @@
 import Leave from '../models/Leave.js'
 import { getBalances, getCoverage } from '../services/leaveService.js'
 import { balanceWarning } from '../services/leaveRules.js'
+import { getOverdueSteps } from '../services/onboardingService.js'
 
 /*
  * GET /api/approvals
- * Everything waiting for a decision, oldest request first.
- * Each item has a `kind` so later features (onboarding steps,
- * expiring documents) can add their own items to the same inbox.
+ * Everything waiting for a decision or action, oldest first.
+ * Each item has a `kind`:
+ *   leave            a pending leave request (approve / reject)
+ *   onboarding-step  an overdue onboarding checklist step (mark done)
  */
 export const getApprovals = async (req, res) => {
   const pending = await Leave.find({ status: 'Pending' }).sort({ createdAt: 1 }).lean()
 
-  const items = await Promise.all(
+  const leaveItems = await Promise.all(
     pending.map(async (leave) => {
       const year = new Date(leave.from).getUTCFullYear()
 
@@ -33,6 +35,27 @@ export const getApprovals = async (req, res) => {
         warnings,
       }
     }),
+  )
+
+  const overdue = await getOverdueSteps()
+
+  const onboardingItems = overdue.map(({ record, step }) => ({
+    kind: 'onboarding-step',
+    id: `${record._id}-${step.key}`,
+    requestedAt: step.dueDate, // "waiting since" the due date
+    onboarding: {
+      _id: record._id,
+      onboardingId: record.onboardingId,
+      employeeId: record.employeeId,
+      employeeName: record.employeeName,
+      department: record.department,
+      joiningDate: record.joiningDate,
+    },
+    step,
+  }))
+
+  const items = [...leaveItems, ...onboardingItems].sort(
+    (a, b) => new Date(a.requestedAt) - new Date(b.requestedAt),
   )
 
   res.json({ success: true, count: items.length, data: items })

@@ -23,6 +23,7 @@ const assetSchema = new mongoose.Schema(
         'Monitor',
         'Mobile',
         'Tablet',
+        'Printer',
         'Keyboard',
         'Mouse',
         'Headset',
@@ -54,7 +55,8 @@ const assetSchema = new mongoose.Schema(
 
     condition: {
       type: String,
-      enum: ['New', 'Good', 'Fair', 'Poor'],
+      // 'Damaged' is what the Assets page offers; 'Poor' kept for old records
+      enum: ['New', 'Good', 'Fair', 'Poor', 'Damaged'],
       default: 'Good',
     },
 
@@ -75,6 +77,23 @@ const assetSchema = new mongoose.Schema(
     notes: {
       type: String,
       trim: true,
+    },
+
+    // Who had this asset, from when to when (services/assetService.js)
+    history: {
+      type: [
+        {
+          _id: false,
+          employeeId: String,
+          employeeName: String,
+          assignedAt: Date,
+          returnedAt: Date,
+          conditionOut: String,
+          conditionIn: String,
+          note: String,
+        },
+      ],
+      default: [],
     },
   },
   {
