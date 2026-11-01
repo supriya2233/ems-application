@@ -1,0 +1,211 @@
+/* =========================================================
+   DESIGN TOKENS — Notion-inspired EMS design system
+
+   Source of truth: docs/design-system.md
+   Every value here comes from that document (section noted
+   in brackets). Do not add values that are not in the spec.
+
+   New CSS should use these tokens directly.
+   Older rules in index.css use legacy names (--primary,
+   --text, --border, ...) which are aliased to these tokens
+   in the first :root block of index.css.
+========================================================= */
+
+:root {
+  /* -------------------------------------------------------
+     COLOUR — brand & interactive  [§2 Primary, §4 Buttons]
+  ------------------------------------------------------- */
+  --color-primary: #0075de;
+  --color-primary-hover: #097fe8;
+  --color-primary-active: #005bab;
+  --color-on-primary: #ffffff;
+
+  --color-primary-soft: #e6f3fe;          /* secondary button bg */
+  --color-primary-soft-hover: #d6e8fd;
+  --color-primary-soft-active: #c0dffb;
+  --color-on-primary-soft: #005bab;       /* secondary button text */
+  --color-on-primary-soft-active: #003f7f;
+
+  /* -------------------------------------------------------
+     COLOUR — accents  [§2 Accent Colors]
+     Reserve for badges, status and callouts (§7 Don't).
+  ------------------------------------------------------- */
+  --color-accent-teal: #27918d;
+  --color-accent-purple: #9849e8;
+  --color-accent-orange: #ff6d00;
+  --color-accent-sky: #62aef0;
+  --color-accent-deep-blue: #1313ba;
+  --color-accent-dark-blue: #005bab;
+
+  /* -------------------------------------------------------
+     COLOUR — neutral scale  [§2 Neutral Scale]
+  ------------------------------------------------------- */
+  --color-black: #000000;
+  --color-near-black: #31302e;
+  --color-dark-gray: #615d59;
+  --color-medium-gray: #a39e98;
+  --color-light-gray: #f6f5f4;
+  --color-off-white: #f9f9f8;
+  --color-white: #ffffff;
+
+  /* -------------------------------------------------------
+     COLOUR — surfaces, text & borders  [§2, §9]
+  ------------------------------------------------------- */
+  --color-surface: var(--color-white);
+  --color-surface-subtle: var(--color-off-white);
+  --color-surface-muted: var(--color-light-gray);
+  --color-surface-accent: #f2f9ff;        /* light blue card */
+
+  --color-text: var(--color-black);
+  --color-text-soft: rgba(0, 0, 0, 0.898); /* text on coloured bg, ghost buttons */
+
+  /* Secondary text uses Dark Gray (#615D59, ~6.5:1 on white) so
+     it passes WCAG AA (§7 "Test text contrast").
+     Medium Gray (#A39E98, ~2.7:1) fails AA for normal text, so
+     it is limited to placeholders and hints, its §2 role. */
+  --color-text-secondary: var(--color-dark-gray);
+  --color-text-placeholder: var(--color-medium-gray);
+  --color-text-disabled: rgba(0, 0, 0, 0.4);
+
+  --color-border: rgba(0, 0, 0, 0.05);       /* cards, containers */
+  --color-border-input: rgba(0, 0, 0, 0.08); /* form fields */
+
+  --color-hover: rgba(0, 0, 0, 0.05);
+  --color-pressed: rgba(0, 0, 0, 0.1);
+  --color-disabled-bg: rgba(0, 0, 0, 0.1);
+  --color-overlay: rgba(0, 0, 0, 0.2);       /* modal backdrop */
+
+  /* -------------------------------------------------------
+     COLOUR — semantic status  [§2 Semantic / Status]
+     These fail AA as small text on white. Use them for icons,
+     borders, tinted backgrounds and large or bold text.
+     The "-soft" tints are the status colour at the spec's
+     10% opacity level (§6 Opacity Levels).
+  ------------------------------------------------------- */
+  --color-success: #27918d;
+  --color-warning: #ffb110;
+  --color-error: #f64932;
+
+  --color-success-soft: color-mix(in srgb, var(--color-success) 10%, transparent);
+  --color-warning-soft: color-mix(in srgb, var(--color-warning) 10%, transparent);
+  --color-error-soft: color-mix(in srgb, var(--color-error) 10%, transparent);
+
+  /* -------------------------------------------------------
+     TYPOGRAPHY  [§3]
+     NotionInter is not bundled; browsers fall back to the
+     system UI font (Segoe UI on Windows, San Francisco on
+     macOS), exactly as the spec's font stack defines.
+  ------------------------------------------------------- */
+  --font-family-base: NotionInter, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', 'Helvetica Neue', sans-serif;
+  --font-family-secondary: NotionInter, system-ui, sans-serif;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --font-size-display-xl: 96px;
+  --font-size-display-lg: 64px;
+  --font-size-heading-lg: 54px;
+  --font-size-heading-md: 42px;
+  --font-size-heading-sm: 32px;
+  --font-size-subheading: 22px;
+  --font-size-heading-xs: 18px;
+  --font-size-body: 16px;
+  --font-size-body-sm: 14px;
+  --font-size-caption: 12px;
+
+  --line-height-display-xl: 100px;
+  --line-height-display-lg: 64px;
+  --line-height-heading-lg: 56px;
+  --line-height-heading-md: 48px;
+  --line-height-heading-sm: 40px;
+  --line-height-subheading: 28px;
+  --line-height-heading-xs: 28px;
+  --line-height-body: 24px;
+  --line-height-body-sm: 20px;
+  --line-height-caption: 16px;
+
+  /* -------------------------------------------------------
+     SPACING  [§5 Spacing System — base unit 4px]
+     Name = multiple of the 4px base unit (--space-4 = 16px).
+  ------------------------------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-9: 36px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-31: 124px;
+
+  /* -------------------------------------------------------
+     RADIUS  [§5 Border Radius Scale]
+  ------------------------------------------------------- */
+  --radius-none: 0;
+  --radius-sm: 4px;        /* compact buttons, icon buttons */
+  --radius-input: 6px;     /* form inputs (§9 rule 5) */
+  --radius-md: 8px;        /* cards, primary buttons, most components */
+  --radius-top: 8px 8px 0 0;
+  --radius-pill: 9999px;   /* pills, badges */
+  --radius-round: 100%;    /* avatars */
+
+  --border-width-thin: 1px;
+  --border-width-medium: 2px;
+
+  /* -------------------------------------------------------
+     ELEVATION  [§6 Depth & Elevation]
+     Level 1 (base) = no shadow.
+  ------------------------------------------------------- */
+  --shadow-level-2: rgba(0, 0, 0, 0) 0px 1px 0px 0px;
+  --shadow-level-3:
+    rgba(0, 0, 0, 0.01) 0px 0.175px 1.041px 0px,
+    rgba(0, 0, 0, 0.02) 0px 0.8px 2.925px 0px,
+    rgba(0, 0, 0, 0.027) 0px 2.025px 7.847px 0px,
+    rgba(0, 0, 0, 0.04) 0px 4px 18px 0px;
+  --shadow-level-4: rgba(0, 0, 0, 0.2) 0px 2px 7px 0px;
+  --shadow-level-5:
+    rgba(0, 0, 0, 0.04) 0px 4px 18px 0px,
+    rgba(0, 0, 0, 0.027) 0px 2.025px 7.84688px 0px,
+    rgba(0, 0, 0, 0.02) 0px 0.8px 2.925px 0px,
+    rgba(0, 0, 0, 0.01) 0px 0.175px 1.04062px 0px,
+    rgba(255, 255, 255, 0.6) 0px 0px 1px 0px;
+
+  /* -------------------------------------------------------
+     Z-INDEX  [§6 Z-index / Layering]
+  ------------------------------------------------------- */
+  --z-base: 1;
+  --z-elevated: 2;
+  --z-floating: 3;
+  --z-popover: 4;
+  --z-dropdown: 10;
+  --z-sticky: 100;
+  --z-high-sticky: 500;
+  --z-modal: 1000;
+
+  /* -------------------------------------------------------
+     COMPONENT SIZES  [§4, §8 Touch Targets]
+  ------------------------------------------------------- */
+  --button-height: 38px;
+  --button-height-secondary: 36px;
+  --button-height-compact: 30px;
+  --input-height: 38px;          /* desktop */
+  --touch-target-min: 44px;      /* mobile buttons, inputs, links */
+  --card-padding: 16px;
+  --container-max-width: 1440px;
+
+  /* -------------------------------------------------------
+     BREAKPOINTS  [§8] — reference only.
+     CSS variables cannot be used inside @media queries, so
+     use these literal values in media queries:
+       Mobile   < 640px              @media (max-width: 639px)
+       Tablet   640px – 1023px       @media (max-width: 1023px)
+       Desktop  1024px – 1440px
+       Wide     > 1440px             @media (min-width: 1441px)
+  ------------------------------------------------------- */
+}

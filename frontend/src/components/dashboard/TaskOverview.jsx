@@ -1,5 +1,20 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { CircleAlert } from 'lucide-react'
+
 import { getTasks } from '../../services/taskService'
+
+/*
+ * The four task statuses from the Task model. Every task has
+ * exactly one, so together they add up to 100% and can be
+ * drawn as one stacked bar.
+ */
+const STATUSES = [
+  { name: 'Completed', className: 'completed' },
+  { name: 'In Progress', className: 'in-progress' },
+  { name: 'Pending', className: 'pending' },
+  { name: 'To Do', className: 'to-do' },
+]
 
 function TaskOverview() {
   const [tasks, setTasks] = useState([])
@@ -30,180 +45,138 @@ function TaskOverview() {
 
   const totalTasks = tasks.length
 
-  const completed = tasks.filter(
-    (task) => task.status === 'Completed'
-  ).length
+  const statusCounts = STATUSES.map((status) => ({
+    ...status,
+    count: tasks.filter((task) => task.status === status.name)
+      .length,
+  }))
 
-  const inProgress = tasks.filter(
-    (task) => task.status === 'In Progress'
-  ).length
+  const completed = statusCounts[0].count
 
-  const pending = tasks.filter(
-    (task) => task.status === 'Pending'
-  ).length
+  const completionPercentage =
+    totalTasks > 0
+      ? Math.round((completed / totalTasks) * 100)
+      : 0
 
+  // Overdue isn't a status: it's any unfinished task past its due date.
   const today = new Date()
 
-  const overdue = tasks.filter((task) => {
-    if (task.status === 'Completed') {
-      return false
-    }
+  const overdue = tasks.filter(
+    (task) =>
+      task.status !== 'Completed' &&
+      task.dueDate &&
+      new Date(task.dueDate) < today
+  ).length
 
-    if (!task.dueDate) {
-      return false
-    }
-
-    return new Date(task.dueDate) < today
-  }).length
-
-  const taskItems = [
-    {
-      name: 'Completed',
-      count: completed,
-      type: '',
-    },
-    {
-      name: 'In Progress',
-      count: inProgress,
-      type: 'warning',
-    },
-    {
-      name: 'Pending',
-      count: pending,
-      type: '',
-    },
-    {
-      name: 'Overdue',
-      count: overdue,
-      type: 'danger',
-    },
-  ]
+  const barDescription = statusCounts
+    .map((status) => `${status.count} ${status.name.toLowerCase()}`)
+    .join(', ')
 
   return (
-    <section className="task-overview">
+    <section
+      className="dash-panel"
+      aria-labelledby="dash-tasks-title"
+    >
 
-      {/* ==========================================
-          HEADER
-      ========================================== */}
-
-      <div className="dashboard-panel-header">
-
+      <header className="dash-panel-header">
         <div>
-
-          <h2>
-            Task Overview
-          </h2>
-
+          <h2 id="dash-tasks-title">Tasks</h2>
           <p>
-            Current task distribution
+            {totalTasks > 0
+              ? `${completed} of ${totalTasks} complete`
+              : 'Progress across all tasks'}
           </p>
-
         </div>
 
-        <a
-          href="/tasks"
-          className="dashboard-panel-link"
-        >
+        <Link to="/tasks" className="dash-panel-link">
           View all
-        </a>
+        </Link>
+      </header>
 
-      </div>
 
-
-      {/* ==========================================
-          LOADING
-      ========================================== */}
+      {/* LOADING */}
 
       {loading && (
-        <div className="task-list">
-          <p>Loading tasks...</p>
+        <div className="dash-tasks" aria-busy="true">
+          <span className="dash-skeleton dash-skeleton-bar" />
+          <span className="dash-skeleton dash-skeleton-line" />
         </div>
       )}
 
 
-      {/* ==========================================
-          ERROR
-      ========================================== */}
+      {/* ERROR */}
 
       {!loading && error && (
-        <div className="task-list">
-          <p>{error}</p>
-        </div>
+        <p className="dash-panel-message" role="alert">
+          {error}
+        </p>
       )}
 
 
-      {/* ==========================================
-          EMPTY STATE
-      ========================================== */}
+      {/* EMPTY */}
 
-      {!loading &&
-        !error &&
-        totalTasks === 0 && (
-          <div className="task-list">
-            <p>No tasks found.</p>
-          </div>
-        )}
+      {!loading && !error && totalTasks === 0 && (
+        <p className="dash-panel-message">
+          No tasks yet.{' '}
+          <Link to="/tasks">Create a task</Link>
+        </p>
+      )}
 
 
-      {/* ==========================================
-          TASK STATISTICS
-      ========================================== */}
+      {/* STACKED BAR + LEGEND */}
 
-      {!loading &&
-        !error &&
-        totalTasks > 0 && (
+      {!loading && !error && totalTasks > 0 && (
+        <div className="dash-tasks">
 
-          <div className="task-list">
-
-            {taskItems.map((task) => {
-
-              const percentage =
-                totalTasks > 0
-                  ? Math.round(
-                      (task.count /
-                        totalTasks) *
-                        100
-                    )
-                  : 0
-
-              return (
-                <div
-                  className="task-item"
-                  key={task.name}
-                >
-
-                  <div className="task-header">
-
-                    <span className="task-name">
-                      {task.name}
-                    </span>
-
-                    <span className="task-count">
-                      {task.count}
-                    </span>
-
-                  </div>
-
-                  <div className="task-progress">
-
-                    <div
-                      className={`task-progress-bar ${
-                        task.type
-                      }`}
-                      style={{
-                        width: `${percentage}%`,
-                      }}
-                    />
-
-                  </div>
-
-                </div>
-              )
-            })}
-
+          <div className="dash-tasks-headline">
+            <strong>{completionPercentage}%</strong>
+            <span>complete</span>
           </div>
 
-        )}
+          <div
+            className="dash-stacked-bar"
+            role="img"
+            aria-label={`Task status: ${barDescription}`}
+          >
+            {statusCounts
+              .filter((status) => status.count > 0)
+              .map((status) => (
+                <span
+                  key={status.name}
+                  className={`dash-segment dash-segment-${status.className}`}
+                  style={{
+                    width: `${(status.count / totalTasks) * 100}%`,
+                  }}
+                />
+              ))}
+          </div>
+
+          <ul className="dash-legend">
+            {statusCounts.map((status) => (
+              <li key={status.name}>
+                <span
+                  className={`dash-swatch dash-segment-${status.className}`}
+                  aria-hidden="true"
+                />
+                {status.name}
+                <span className="dash-legend-count">
+                  {status.count}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          {overdue > 0 && (
+            <p className="dash-overdue">
+              <CircleAlert size={16} aria-hidden="true" />
+              {overdue === 1
+                ? '1 task is past its due date'
+                : `${overdue} tasks are past their due date`}
+            </p>
+          )}
+
+        </div>
+      )}
 
     </section>
   )
