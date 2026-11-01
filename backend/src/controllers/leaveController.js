@@ -1,6 +1,7 @@
 import Leave from '../models/Leave.js'
 import { AppError } from '../middleware/errorHandler.js'
 import { getLink, linkEmployee } from '../services/employeeLink.js'
+import { publishChange } from '../services/activity.js'
 
 export const getLeaves = async (req, res) => {
   try {
@@ -53,6 +54,7 @@ export const createLeave = async (req, res) => {
   await linkEmployee(body, getLink(Leave))
 
   const leave = await Leave.create(body)
+  publishChange('leave', 'created', null, leave)
 
   res.status(201).json({
     success: true,
@@ -65,6 +67,8 @@ export const updateLeave = async (req, res) => {
   const body = { ...req.body }
   await linkEmployee(body, getLink(Leave), { isUpdate: true })
 
+  const before = await Leave.findById(req.params.id).lean()
+
   const leave = await Leave.findByIdAndUpdate(
     req.params.id,
     body,
@@ -74,6 +78,8 @@ export const updateLeave = async (req, res) => {
   if (!leave) {
     throw new AppError(404, 'Leave request not found')
   }
+
+  publishChange('leave', 'updated', before, leave)
 
   res.json({
     success: true,
@@ -95,6 +101,8 @@ export const deleteLeave = async (req, res) => {
         message: 'Leave request not found',
       })
     }
+
+    publishChange('leave', 'deleted', leave, null)
 
     res.status(200).json({
       success: true,

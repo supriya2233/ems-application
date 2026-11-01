@@ -1,6 +1,7 @@
 import Payroll from '../models/Payroll.js'
 import { AppError } from '../middleware/errorHandler.js'
 import { getLink, linkEmployee } from '../services/employeeLink.js'
+import { publishChange } from '../services/activity.js'
 
 export const getPayroll = async (req, res) => {
   try {
@@ -121,6 +122,7 @@ export const createPayroll = async (req, res) => {
   body.net = calculateNet(body)
 
   const payroll = await Payroll.create(body)
+  publishChange('payroll', 'created', null, payroll)
 
   res.status(201).json({
     success: true,
@@ -138,6 +140,8 @@ export const updatePayroll = async (req, res) => {
   delete body.net
   await linkEmployee(body, getLink(Payroll), { isUpdate: true })
 
+  const before = await Payroll.findById(req.params.id).lean()
+
   const payroll = await Payroll.findByIdAndUpdate(
     req.params.id,
     body,
@@ -150,6 +154,8 @@ export const updatePayroll = async (req, res) => {
 
   payroll.net = calculateNet(payroll)
   await payroll.save()
+
+  publishChange('payroll', 'updated', before, payroll)
 
   res.json({
     success: true,
@@ -174,6 +180,8 @@ export const deletePayroll = async (
         message: 'Payroll record not found',
       })
     }
+
+    publishChange('payroll', 'deleted', payroll, null)
 
     res.json({
       success: true,

@@ -2,6 +2,7 @@ import Task from '../models/Task.js'
 import { AppError } from '../middleware/errorHandler.js'
 import { assignId } from '../services/idService.js'
 import { getLink, linkEmployee } from '../services/employeeLink.js'
+import { publishChange } from '../services/activity.js'
 
 export const getTasks = async (req, res) => {
   try {
@@ -53,6 +54,7 @@ export const createTask = async (req, res) => {
   await assignId('tasks', Task, body)
 
   const task = await Task.create(body)
+  publishChange('tasks', 'created', null, task)
 
   res.status(201).json({
     success: true,
@@ -66,6 +68,8 @@ export const updateTask = async (req, res) => {
   delete body.taskId // IDs never change after creation
   await linkEmployee(body, getLink(Task), { isUpdate: true })
 
+  const before = await Task.findById(req.params.id).lean()
+
   const task = await Task.findByIdAndUpdate(
     req.params.id,
     body,
@@ -75,6 +79,8 @@ export const updateTask = async (req, res) => {
   if (!task) {
     throw new AppError(404, 'Task not found')
   }
+
+  publishChange('tasks', 'updated', before, task)
 
   res.json({
     success: true,
@@ -93,6 +99,8 @@ export const deleteTask = async (req, res) => {
         message: 'Task not found',
       })
     }
+
+    publishChange('tasks', 'deleted', task, null)
 
     res.status(200).json({
       success: true,

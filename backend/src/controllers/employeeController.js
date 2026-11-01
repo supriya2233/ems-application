@@ -3,6 +3,7 @@ import { AppError } from '../middleware/errorHandler.js'
 import { assignId } from '../services/idService.js'
 import { assertDepartmentExists, propagateEmployeeChange } from '../services/employeeLink.js'
 import { getEmployeeOverview } from '../services/employeeOverview.js'
+import { publishChange } from '../services/activity.js'
 
 export const getEmployees = async (req, res) => {
   try {
@@ -53,6 +54,7 @@ export const createEmployee = async (req, res) => {
   await assignId('employees', Employee, body)
 
   const employee = await Employee.create(body)
+  publishChange('employees', 'created', null, employee)
 
   res.status(201).json({
     success: true,
@@ -82,6 +84,8 @@ export const updateEmployee = async (req, res) => {
   )
 
   await propagateEmployeeChange(before, employee)
+
+  publishChange('employees', 'updated', before, employee)
 
   res.status(200).json({
     success: true,
@@ -118,6 +122,8 @@ export const deleteEmployee = async (req, res) => {
         message: 'Employee not found',
       })
     }
+
+    publishChange('employees', 'deleted', employee, null)
 
     res.status(200).json({
       success: true,

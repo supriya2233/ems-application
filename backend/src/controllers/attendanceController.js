@@ -1,6 +1,7 @@
 import Attendance from '../models/Attendance.js'
 import { AppError } from '../middleware/errorHandler.js'
 import { getLink, linkEmployee } from '../services/employeeLink.js'
+import { publishChange } from '../services/activity.js'
 
 export const getAttendance = async (req, res) => {
   try {
@@ -53,6 +54,7 @@ export const createAttendance = async (req, res) => {
   await linkEmployee(body, getLink(Attendance))
 
   const attendance = await Attendance.create(body)
+  publishChange('attendance', 'created', null, attendance)
 
   res.status(201).json({
     success: true,
@@ -65,6 +67,8 @@ export const updateAttendance = async (req, res) => {
   const body = { ...req.body }
   await linkEmployee(body, getLink(Attendance), { isUpdate: true })
 
+  const before = await Attendance.findById(req.params.id).lean()
+
   const attendance = await Attendance.findByIdAndUpdate(
     req.params.id,
     body,
@@ -74,6 +78,8 @@ export const updateAttendance = async (req, res) => {
   if (!attendance) {
     throw new AppError(404, 'Attendance record not found')
   }
+
+  publishChange('attendance', 'updated', before, attendance)
 
   res.json({
     success: true,
@@ -95,6 +101,8 @@ export const deleteAttendance = async (req, res) => {
         message: 'Attendance record not found',
       })
     }
+
+    publishChange('attendance', 'deleted', attendance, null)
 
     res.status(200).json({
       success: true,

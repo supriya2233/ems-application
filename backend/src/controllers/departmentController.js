@@ -4,6 +4,7 @@ import { AppError } from '../middleware/errorHandler.js'
 import { assignId } from '../services/idService.js'
 import { propagateDepartmentRename } from '../services/employeeLink.js'
 import { COMPUTED_DEPARTMENT_FIELDS, withLiveCounts } from '../services/departmentStats.js'
+import { publishChange } from '../services/activity.js'
 
 export const getDepartments = async (req, res) => {
   const departments = await Department.find().sort({ createdAt: -1 })
@@ -38,6 +39,7 @@ export const createDepartment = async (req, res) => {
   await assignId('departments', Department, body)
 
   const department = await Department.create(body)
+  publishChange('departments', 'created', null, department)
   const [data] = await withLiveCounts([department])
 
   res.status(201).json({
@@ -69,6 +71,8 @@ export const updateDepartment = async (req, res) => {
 
   const [data] = await withLiveCounts([department])
 
+  publishChange('departments', 'updated', before, department)
+
   res.status(200).json({
     success: true,
     message: 'Department updated successfully',
@@ -93,6 +97,8 @@ export const deleteDepartment = async (req, res) => {
   }
 
   await department.deleteOne()
+
+  publishChange('departments', 'deleted', department, null)
 
   res.status(200).json({
     success: true,
