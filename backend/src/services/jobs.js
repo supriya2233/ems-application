@@ -1,5 +1,6 @@
 import { syncEmployeeLeaveStatus } from './leaveService.js'
 import { notifyOverdueSteps } from './onboardingService.js'
+import { checkDocumentExpiry } from './documentService.js'
 
 /*
  * Background checks. They run once when the server starts, then
@@ -8,6 +9,7 @@ import { notifyOverdueSteps } from './onboardingService.js'
 const JOBS = [
   { name: 'leave-status', run: () => syncEmployeeLeaveStatus(), report: (n) => `updated ${n} employee status(es)` },
   { name: 'onboarding-overdue', run: () => notifyOverdueSteps(), report: (n) => `sent ${n} overdue onboarding reminder(s)` },
+  { name: 'document-expiry', run: () => checkDocumentExpiry(), report: (n) => `flagged ${n} expired / expiring document(s)` },
 ]
 
 export function startScheduledJobs(intervalMs = 60 * 60 * 1000) {

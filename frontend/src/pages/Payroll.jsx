@@ -1,1803 +1,468 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-  getPayroll,
-  getPayrollSummary,
-  createPayroll,
-  updatePayroll,
-  deletePayroll,
-} from '../services/payrollService'
-import { getEmployees } from '../services/employeeService'
+import { Calculator, CircleCheck, IndianRupee, Plus, ReceiptIndianRupee, Wallet } from 'lucide-react'
+
+import Badge from '../components/common/Badge'
+import Button from '../components/common/Button'
+import DataTable from '../components/common/DataTable'
+import EmployeePicker from '../components/common/EmployeePicker'
+import EmptyState from '../components/common/EmptyState'
+import Modal from '../components/common/Modal'
+import PageHeader from '../components/common/PageHeader'
+import SearchBar from '../components/common/SearchBar'
+import StatCard from '../components/common/StatCard'
+import GeneratePayrollModal from '../components/payroll/GeneratePayrollModal'
+import PayrollDetailModal from '../components/payroll/PayrollDetailModal'
 import { useConfirm, useToast } from '../components/common/feedbackContext'
+import { useLiveRefresh } from '../components/live/liveEventsContext'
+import { getEmployees } from '../services/employeeService'
+import {
+  createPayroll,
+  deletePayroll,
+  getPayroll,
+  getPayrollMonths,
+  updatePayroll,
+} from '../services/payrollService'
+import { plural } from '../utils/leave'
+import { formatMoney } from '../utils/money'
+import { daysExplained, people } from '../utils/payroll'
 
-const payrollMonths = [
-  'August 2026',
-  'July 2026',
-  'June 2026',
-  'May 2026',
-]
+const STATUSES = ['Draft', 'Pending', 'Processed']
 
-const statusOptions = [
-  'All',
-  'Processed',
-  'Pending',
-  'Draft',
-]
-
-function formatCurrency(value) {
-  return `₹${Number(value || 0).toLocaleString(
-    'en-IN',
-  )}`
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const thisMonth = () => {
+  const now = new Date()
+  return `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`
 }
+
+const emptyForm = (month) => ({
+  employeeId: '',
+  month,
+  basic: '',
+  allowances: '',
+  deductions: '',
+  status: 'Draft',
+})
 
 function Payroll() {
   const confirm = useConfirm()
   const toast = useToast()
 
-  const [payrollEmployees, setPayrollEmployees] =
-    useState([])
+  const [months, setMonths] = useState([thisMonth()])
+  const [month, setMonth] = useState(thisMonth())
+  const [records, setRecords] = useState([])
+  const [employees, setEmployees] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  const [employees, setEmployees] =
-    useState([])
+  const [search, setSearch] = useState('')
+  const [department, setDepartment] = useState('All')
+  const [status, setStatus] = useState('All')
 
-  const [summary, setSummary] =
-    useState({
-      totalPayroll: 0,
-      grossSalary: 0,
-      deductions: 0,
-      netPayroll: 0,
-    })
+  const [showGenerate, setShowGenerate] = useState(false)
+  const [selected, setSelected] = useState(null)
+  const [form, setForm] = useState(null) // manual "Add record" form
+  const [saving, setSaving] = useState(false)
+  const [running, setRunning] = useState(false)
 
-  const [month, setMonth] =
-    useState(payrollMonths[0])
+  const refreshKey = useLiveRefresh(['payroll', 'employees', 'leave'])
 
-  const [search, setSearch] =
-    useState('')
-
-  const [department, setDepartment] =
-    useState('All')
-
-  const [status, setStatus] =
-    useState('All')
-
-  const [selectedEmployee, setSelectedEmployee] =
-    useState(null)
-
-  const [showModal, setShowModal] =
-    useState(false)
-
-  const [loading, setLoading] =
-    useState(true)
-
-  const [saving, setSaving] =
-    useState(false)
-
-  const [error, setError] =
-    useState('')
-
-  const [form, setForm] = useState({
-    employeeId: '',
-    employeeName: '',
-    department: '',
-    month: payrollMonths[0],
-    basic: '',
-    allowances: '',
-    deductions: '',
-    status: 'Draft',
-  })
-
-  // =================================================
-  // LOAD PAYROLL + EMPLOYEES
-  // =================================================
-
+  // Months and employees once (and on live changes).
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true)
-        setError('')
-
-        const [
-          payrollData,
-          employeeData,
-          summaryData,
-        ] = await Promise.all([
-          getPayroll({
-            month,
-          }),
-          getEmployees(),
-          getPayrollSummary(month),
-        ])
-
-        setPayrollEmployees(payrollData)
-        setEmployees(employeeData)
-        setSummary(summaryData)
-      } catch (error) {
-        console.error(
-          'Failed to load payroll:',
-          error,
-        )
-
-        setError(
-          error.message ||
-            'Failed to load payroll',
-        )
-      } finally {
-        setLoading(false)
-      }
+    let ignore = false
+    Promise.all([getPayrollMonths(), getEmployees()])
+      .then(([monthList, employeeList]) => {
+        if (ignore) return
+        setMonths(monthList)
+        setEmployees(employeeList)
+      })
+      .catch(() => {
+        // The month picker still offers the current month.
+      })
+    return () => {
+      ignore = true
     }
+  }, [refreshKey])
 
-    loadData()
-  }, [month])
+  // The selected month's records.
+  useEffect(() => {
+    let ignore = false
+    setLoading(true)
 
-  // =================================================
-  // DEPARTMENTS
-  // =================================================
+    getPayroll({ month })
+      .then((data) => {
+        if (!ignore) {
+          setRecords(data)
+          setError('')
+        }
+      })
+      .catch((err) => {
+        if (!ignore) setError(err.message || 'Failed to load payroll')
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false)
+      })
 
-  const departments = useMemo(() => {
-    const values = payrollEmployees
-      .map(
-        (employee) =>
-          employee.department,
-      )
-      .filter(Boolean)
+    return () => {
+      ignore = true
+    }
+  }, [month, refreshKey])
 
-    return [
-      'All',
-      ...new Set(values),
-    ]
-  }, [payrollEmployees])
+  const replace = (updated) => {
+    setRecords((current) => current.map((record) => (record._id === updated._id ? updated : record)))
+    setSelected((current) => (current?._id === updated._id ? updated : current))
+  }
 
-  // =================================================
-  // FILTER PAYROLL
-  // =================================================
+  /* ---------------- Summary & filters ---------------- */
 
-  const filteredEmployees = useMemo(() => {
-    const searchValue =
-      search.trim().toLowerCase()
+  const summary = useMemo(() => {
+    const sum = (pick) => records.reduce((total, record) => total + Number(pick(record) || 0), 0)
+    return {
+      net: sum((record) => record.net),
+      gross: sum((record) => Number(record.basic || 0) + Number(record.allowances || 0)),
+      deductions: sum((record) => record.deductions),
+      lossOfPay: sum((record) => record.breakdown?.lossOfPay),
+      processed: records.filter((record) => record.status === 'Processed').length,
+      waiting: records.filter((record) => record.status !== 'Processed').length,
+    }
+  }, [records])
 
-    return payrollEmployees.filter(
-      (employee) => {
-        const name =
-          employee.employeeName ||
-          ''
+  const departments = useMemo(
+    () => [...new Set(records.map((record) => record.department).filter(Boolean))].sort(),
+    [records],
+  )
 
-        const id =
-          employee.employeeId ||
-          ''
-
+  const filtered = useMemo(() => {
+    const text = search.trim().toLowerCase()
+    return records
+      .filter((record) => {
         const matchesSearch =
-          !searchValue ||
-          name
-            .toLowerCase()
-            .includes(searchValue) ||
-          id
-            .toLowerCase()
-            .includes(searchValue)
+          !text || [record.employeeName, record.employeeId].some((field) => String(field || '').toLowerCase().includes(text))
+        const matchesDepartment = department === 'All' || record.department === department
+        const matchesStatus = status === 'All' || record.status === status
+        return matchesSearch && matchesDepartment && matchesStatus
+      })
+      .sort((a, b) => String(a.employeeName).localeCompare(String(b.employeeName)))
+  }, [records, search, department, status])
 
-        const matchesDepartment =
-          department === 'All' ||
-          employee.department ===
-            department
+  const employeeById = useMemo(
+    () => Object.fromEntries(employees.map((employee) => [employee.employeeId, employee])),
+    [employees],
+  )
 
-        const matchesStatus =
-          status === 'All' ||
-          employee.status === status
-
-        return (
-          matchesSearch &&
-          matchesDepartment &&
-          matchesStatus
-        )
-      },
-    )
-  }, [
-    payrollEmployees,
-    search,
-    department,
-    status,
-  ])
-
-  // =================================================
-  // EMPLOYEE CHANGE
-  // =================================================
-
-  const handleEmployeeChange = (
-    event,
-  ) => {
-    const employeeId =
-      event.target.value
-
-    const selected =
-      employees.find(
-        (employee) =>
-          employee.employeeId ===
-          employeeId,
-      )
-
-    if (!selected) {
-      setForm((previous) => ({
-        ...previous,
-        employeeId: '',
-        employeeName: '',
-        department: '',
-      }))
-
-      return
-    }
-
-    setForm((previous) => ({
-      ...previous,
-      employeeId:
-        selected.employeeId,
-      employeeName:
-        selected.name,
-      department:
-        selected.department,
-    }))
-  }
-
-  // =================================================
-  // FORM CHANGE
-  // =================================================
-
-  const handleFormChange = (
-    event,
-  ) => {
-    const {
-      name,
-      value,
-    } = event.target
-
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }))
-  }
-
-  // =================================================
-  // OPEN PAYROLL MODAL
-  // =================================================
-
-  const openPayrollModal = () => {
-    setForm({
-      employeeId: '',
-      employeeName: '',
-      department: '',
-      month,
-      basic: '',
-      allowances: '',
-      deductions: '',
-      status: 'Draft',
-    })
-
-    setError('')
-    setShowModal(true)
-  }
-
-  // =================================================
-  // CREATE PAYROLL
-  // =================================================
-
-  const handleSubmit = async (
-    event,
-  ) => {
-    event.preventDefault()
-
-    if (!form.employeeId) {
-      setError(
-        'Please select an employee.',
-      )
-
-      return
-    }
-
-    if (!form.basic) {
-      setError(
-        'Please enter the basic salary.',
-      )
-
-      return
-    }
-
-    try {
-      setSaving(true)
-      setError('')
-
-      const created =
-        await createPayroll({
-          employeeId:
-            form.employeeId,
-
-          employeeName:
-            form.employeeName,
-
-          department:
-            form.department,
-
-          month: form.month,
-
-          basic: Number(
-            form.basic,
-          ),
-
-          allowances: Number(
-            form.allowances || 0,
-          ),
-
-          deductions: Number(
-            form.deductions || 0,
-          ),
-
-          status:
-            form.status,
-        })
-
-      if (
-        created.month === month
-      ) {
-        setPayrollEmployees(
-          (previous) => [
-            created,
-            ...previous,
-          ],
-        )
-      }
-
-      const updatedSummary =
-        await getPayrollSummary(
-          month,
-        )
-
-      setSummary(
-        updatedSummary,
-      )
-
-      setShowModal(false)
-    } catch (error) {
-      setError(
-        error.message ||
-          'Failed to create payroll',
-      )
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  // =================================================
-  // RUN PAYROLL
-  // =================================================
+  /* ---------------- Actions ---------------- */
 
   const runPayroll = async () => {
-    if (
-      payrollEmployees.length ===
-      0
-    ) {
-      setError(
-        `No payroll records found for ${month}.`,
-      )
-
+    const waiting = records.filter((record) => record.status !== 'Processed')
+    if (waiting.length === 0) {
+      toast.error(`Payroll for ${month} is already processed`)
       return
     }
 
+    const ok = await confirm({
+      title: `Run payroll for ${month}?`,
+      message: `${plural(waiting.length, 'record')} (${formatMoney(waiting.reduce((sum, record) => sum + record.net, 0))} net) will be marked Processed. Processed payroll can’t be recalculated.`,
+      confirmLabel: 'Run payroll',
+    })
+    if (!ok) return
+
+    setRunning(true)
     try {
-      setSaving(true)
-      setError('')
-
-      const pendingRecords =
-        payrollEmployees.filter(
-          (employee) =>
-            employee.status !==
-            'Processed',
-        )
-
-      if (
-        pendingRecords.length ===
-        0
-      ) {
-        setError(
-          `Payroll for ${month} is already processed.`,
-        )
-
-        return
-      }
-
-      const updatedRecords =
-        await Promise.all(
-          pendingRecords.map(
-            (employee) =>
-              updatePayroll(
-                employee._id,
-                {
-                  status:
-                    'Processed',
-                },
-              ),
-          ),
-        )
-
-      setPayrollEmployees(
-        (previous) =>
-          previous.map(
-            (employee) => {
-              const updated =
-                updatedRecords.find(
-                  (item) =>
-                    item._id ===
-                    employee._id,
-                )
-
-              return updated ||
-                employee
-            },
-          ),
+      const updated = await Promise.all(
+        waiting.map((record) => updatePayroll(record._id, { status: 'Processed' })),
       )
-
-      const updatedSummary =
-        await getPayrollSummary(
-          month,
-        )
-
-      setSummary(
-        updatedSummary,
-      )
-    } catch (error) {
-      setError(
-        error.message ||
-          'Failed to process payroll',
-      )
+      updated.forEach(replace)
+      toast.success(`${month} payroll processed for ${people(updated.length)}`)
+    } catch (err) {
+      toast.error(err.message || 'Failed to process payroll')
     } finally {
-      setSaving(false)
+      setRunning(false)
     }
   }
 
-  // =================================================
-  // DELETE PAYROLL
-  // =================================================
-
-  const handleDelete = async (
-    employee,
-  ) => {
-    const confirmed =
-      await confirm({
+  const handleDelete = async (record) => {
+    const ok = await confirm({
       title: 'Delete payroll record?',
-      message: `The payroll record for ${employee.employeeName} will be permanently removed.`,
+      message: `${record.employeeName}’s ${record.month} payroll will be permanently removed.`,
       confirmLabel: 'Delete',
       tone: 'danger',
     })
-
-    if (!confirmed) {
-      return
-    }
+    if (!ok) return
 
     try {
-      setError('')
-
-      await deletePayroll(
-        employee._id,
-      )
-
-      setPayrollEmployees(
-        (previous) =>
-          previous.filter(
-            (item) =>
-              item._id !==
-              employee._id,
-          ),
-      )
-
-      setSelectedEmployee(null)
-
-      const updatedSummary =
-        await getPayrollSummary(
-          month,
-        )
-
-      setSummary(
-        updatedSummary,
-      )
-
+      await deletePayroll(record._id)
+      setRecords((current) => current.filter((item) => item._id !== record._id))
+      setSelected(null)
       toast.success('Payroll record deleted')
-    } catch (error) {
-      setError(
-        error.message ||
-          'Failed to delete payroll',
-      )
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete payroll')
     }
   }
 
-  // =================================================
-  // PAYSLIP
-  // =================================================
-
-  const downloadPayslip = (
-    employee,
-  ) => {
-    const content = `
-EMS - EMPLOYEE PAYSLIP
-
-Employee: ${employee.employeeName}
-Employee ID: ${employee.employeeId}
-Department: ${employee.department}
-Month: ${employee.month}
-
-Basic Salary: ${formatCurrency(
-      employee.basic,
-    )}
-
-Allowances: ${formatCurrency(
-      employee.allowances,
-    )}
-
-Deductions: ${formatCurrency(
-      employee.deductions,
-    )}
-
-Net Salary: ${formatCurrency(
-      employee.net,
-    )}
-
-Status: ${employee.status}
-`
-
-    const blob =
-      new Blob([content], {
-        type: 'text/plain',
+  const handleAdd = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    try {
+      const created = await createPayroll({
+        employeeId: form.employeeId,
+        month: form.month,
+        basic: Number(form.basic),
+        allowances: Number(form.allowances || 0),
+        deductions: Number(form.deductions || 0),
+        status: form.status,
       })
-
-    const url =
-      URL.createObjectURL(blob)
-
-    const link =
-      document.createElement('a')
-
-    link.href = url
-
-    link.download =
-      `${employee.employeeId}-${employee.month}-payslip.txt`
-
-    link.click()
-
-    URL.revokeObjectURL(url)
+      if (created.month === month) setRecords((current) => [created, ...current])
+      toast.success(`Payroll added for ${created.employeeName}`)
+      setForm(null)
+    } catch (err) {
+      toast.error(err.message || 'Failed to create payroll')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  // =================================================
-  // LOADING
-  // =================================================
+  /* ---------------- Table ---------------- */
 
-  if (loading) {
-    return (
-      <div className="module-page payroll-page">
-
-        <div className="module-header">
-
-          <div>
-
-            <span className="module-eyebrow">
-              FINANCE
-            </span>
-
-            <h1>
-              Payroll
-            </h1>
-
-            <p>
-              Manage employee salaries,
-              deductions, payroll processing
-              and payslips.
-            </p>
-
+  const columns = [
+    {
+      key: 'employee',
+      label: 'Employee',
+      render: (record) => (
+        <>
+          <div className="table-primary">{record.employeeName}</div>
+          <div className="table-secondary">
+            {record.employeeId} · {record.department}
+            {record.type === 'Final settlement' && <> · <Badge variant="warning">Final settlement</Badge></>}
           </div>
-
+        </>
+      ),
+    },
+    { key: 'basic', label: 'Basic', render: (record) => formatMoney(record.basic) },
+    { key: 'allowances', label: 'Allowances', render: (record) => formatMoney(record.allowances) },
+    {
+      key: 'deductions',
+      label: 'Deductions',
+      render: (record) => (
+        <>
+          <div className="table-primary">{formatMoney(record.deductions)}</div>
+          {record.breakdown?.workingDays > 0 && (
+            <div className="table-secondary">{daysExplained(record.breakdown)}</div>
+          )}
+        </>
+      ),
+    },
+    { key: 'net', label: 'Net', render: (record) => <strong className="payroll-net">{formatMoney(record.net)}</strong> },
+    { key: 'status', label: 'Status', render: (record) => <Badge>{record.status}</Badge> },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (record) => (
+        <div className="table-actions">
+          <Button size="small" variant="secondary" onClick={() => setSelected(record)}>View</Button>
+          <Button
+            size="small"
+            variant="ghost"
+            aria-label={`Delete ${record.employeeName}’s payroll`}
+            onClick={() => handleDelete(record)}
+          >
+            Delete
+          </Button>
         </div>
+      ),
+    },
+  ]
 
-        <div className="content-section">
-
-          <p>
-            Loading payroll...
-          </p>
-
-        </div>
-
-      </div>
-    )
-  }
-
-  // =================================================
-  // PAGE
-  // =================================================
+  const isFiltered = search || department !== 'All' || status !== 'All'
 
   return (
-    <div className="module-page payroll-page">
-
-      {/* PAGE HEADER */}
-
-      <div className="module-header">
-
-        <div>
-
-          <span className="module-eyebrow">
-            FINANCE
-          </span>
-
-          <h1>
-            Payroll
-          </h1>
-
-          <p>
-            Manage employee salaries,
-            deductions, payroll processing
-            and payslips.
-          </p>
-
-        </div>
-
-
-        <div className="payroll-header-actions">
-
-          <select
-            className="month-selector"
-            value={month}
-            onChange={(event) =>
-              setMonth(
-                event.target.value,
-              )
-            }
-          >
-
-            {payrollMonths.map(
-              (item) => (
-                <option
-                  key={item}
-                  value={item}
-                >
-                  {item}
-                </option>
-              ),
-            )}
-
-          </select>
-
-
-          <button
-            className="secondary-button"
-            onClick={
-              openPayrollModal
-            }
-          >
-            + Add Payroll
-          </button>
-
-
-          <button
-            className="primary-button"
-            onClick={runPayroll}
-            disabled={saving}
-          >
-            {saving
-              ? 'Processing...'
-              : 'Run Payroll'}
-          </button>
-
-        </div>
-
-      </div>
-
-
-      {/* ERROR */}
-
-      {error && (
-        <div className="content-section">
-
-          <p>
-            {error}
-          </p>
-
-        </div>
-      )}
-
-
-      {/* SUMMARY */}
-
-      <section className="payroll-summary-grid">
-
-        <div className="payroll-summary-card total">
-
-          <div className="payroll-summary-top">
-
-            <span>
-              Total Payroll
-            </span>
-
-            <span className="payroll-summary-icon">
-              ₹
-            </span>
-
+    <div className="payroll-page">
+      <PageHeader
+        title="Payroll"
+        description="Generate a month’s payroll from salaries, unpaid leave and attendance, then run it and print payslips."
+        action={
+          <div className="payroll-header-actions">
+            <label className="visually-hidden" htmlFor="payroll-month">Month</label>
+            <select id="payroll-month" value={month} onChange={(event) => setMonth(event.target.value)}>
+              {(months.includes(month) ? months : [month, ...months]).map((label) => (
+                <option key={label} value={label}>{label}</option>
+              ))}
+            </select>
+            <Button variant="secondary" icon={<Plus size={16} aria-hidden="true" />} onClick={() => setForm(emptyForm(month))}>
+              Add record
+            </Button>
+            <Button icon={<Calculator size={16} aria-hidden="true" />} onClick={() => setShowGenerate(true)}>
+              Generate payroll
+            </Button>
           </div>
+        }
+      />
 
-          <strong>
-            {formatCurrency(
-              summary.totalPayroll,
-            )}
-          </strong>
+      {error && <div className="ui-alert ui-alert-error" role="alert">{error}</div>}
 
-          <small>
-            Net payroll for {month}
-          </small>
-
-        </div>
-
-
-        <div className="payroll-summary-card gross">
-
-          <div className="payroll-summary-top">
-
-            <span>
-              Gross Salary
-            </span>
-
-            <span className="payroll-summary-icon">
-              ₹
-            </span>
-
-          </div>
-
-          <strong>
-            {formatCurrency(
-              summary.grossSalary,
-            )}
-          </strong>
-
-          <small>
-            Basic + allowances
-          </small>
-
-        </div>
-
-
-        <div className="payroll-summary-card deductions">
-
-          <div className="payroll-summary-top">
-
-            <span>
-              Deductions
-            </span>
-
-            <span className="payroll-summary-icon">
-              ₹
-            </span>
-
-          </div>
-
-          <strong>
-            {formatCurrency(
-              summary.deductions,
-            )}
-          </strong>
-
-          <small>
-            Total deductions
-          </small>
-
-        </div>
-
-
-        <div className="payroll-summary-card net">
-
-          <div className="payroll-summary-top">
-
-            <span>
-              Net Payroll
-            </span>
-
-            <span className="payroll-summary-icon">
-              ₹
-            </span>
-
-          </div>
-
-          <strong>
-            {formatCurrency(
-              summary.netPayroll,
-            )}
-          </strong>
-
-          <small>
-            Final employee payout
-          </small>
-
-        </div>
-
+      <section className="stats-grid" aria-label={`Payroll for ${month}`}>
+        <StatCard
+          title="Net payroll"
+          value={formatMoney(summary.net)}
+          icon={<Wallet size={16} aria-hidden="true" />}
+          description={`${people(records.length)} in ${month}`}
+        />
+        <StatCard
+          title="Gross"
+          value={formatMoney(summary.gross)}
+          icon={<IndianRupee size={16} aria-hidden="true" />}
+          description="basic + allowances"
+        />
+        <StatCard
+          title="Deductions"
+          value={formatMoney(summary.deductions)}
+          icon={<ReceiptIndianRupee size={16} aria-hidden="true" />}
+          description={summary.lossOfPay > 0 ? `${formatMoney(summary.lossOfPay)} of it loss of pay` : 'no loss of pay'}
+        />
+        <StatCard
+          title="Processed"
+          value={`${summary.processed} / ${records.length}`}
+          icon={<CircleCheck size={16} aria-hidden="true" />}
+          warning={summary.waiting > 0}
+          description={summary.waiting > 0 ? `${summary.waiting} waiting to run` : records.length ? 'all done' : 'nothing yet'}
+        />
       </section>
 
-
-      {/* PAYROLL TABLE */}
-
-      <section className="content-card payroll-table-card">
-
-        <div className="section-heading">
-
+      <section className="ui-card" aria-labelledby="payroll-records-title">
+        <div className="recruitment-panel-header">
           <div>
-
-            <h2>
-              Employee Payroll
-            </h2>
-
-            <p>
-              Salary breakdown for {month}.
-            </p>
-
+            <h2 id="payroll-records-title">{month}</h2>
+            <p>Drafts can be recalculated; running payroll marks them Processed.</p>
           </div>
-
-          <span className="employee-count">
-            {filteredEmployees.length}{' '}
-            employees
-          </span>
-
-        </div>
-
-
-        {/* FILTERS */}
-
-        <div className="filter-bar payroll-filters">
-
-          <input
-            type="search"
-            placeholder="Search employee or ID..."
-            value={search}
-            onChange={(event) =>
-              setSearch(
-                event.target.value,
-              )
-            }
-          />
-
-
-          <select
-            value={department}
-            onChange={(event) =>
-              setDepartment(
-                event.target.value,
-              )
-            }
+          <Button
+            variant="secondary"
+            loading={running}
+            disabled={summary.waiting === 0}
+            onClick={runPayroll}
           >
+            Run payroll{summary.waiting > 0 ? ` (${summary.waiting})` : ''}
+          </Button>
+        </div>
 
-            {departments.map(
-              (item) => (
-                <option
-                  key={item}
-                  value={item}
-                >
-                  {item}
-                </option>
-              ),
-            )}
-
+        <div className="recruitment-toolbar">
+          <SearchBar value={search} onChange={setSearch} placeholder="Search name or ID…" />
+          <select aria-label="Filter by department" value={department} onChange={(event) => setDepartment(event.target.value)}>
+            <option value="All">All departments</option>
+            {departments.map((name) => <option key={name} value={name}>{name}</option>)}
           </select>
-
-
-          <select
-            value={status}
-            onChange={(event) =>
-              setStatus(
-                event.target.value,
-              )
-            }
-          >
-
-            {statusOptions.map(
-              (item) => (
-                <option
-                  key={item}
-                  value={item}
-                >
-                  {item}
-                </option>
-              ),
-            )}
-
+          <select aria-label="Filter by status" value={status} onChange={(event) => setStatus(event.target.value)}>
+            <option value="All">All statuses</option>
+            {STATUSES.map((name) => <option key={name} value={name}>{name}</option>)}
           </select>
-
         </div>
 
-
-        {/* TABLE */}
-
-        {filteredEmployees.length >
-        0 ? (
-
-          <div className="payroll-table-wrapper">
-
-            <table className="payroll-table">
-
-              <thead>
-
-                <tr>
-
-                  <th>
-                    Employee
-                  </th>
-
-                  <th>
-                    Department
-                  </th>
-
-                  <th>
-                    Basic Salary
-                  </th>
-
-                  <th>
-                    Allowances
-                  </th>
-
-                  <th>
-                    Deductions
-                  </th>
-
-                  <th>
-                    Net Salary
-                  </th>
-
-                  <th>
-                    Status
-                  </th>
-
-                  <th>
-                    Actions
-                  </th>
-
-                </tr>
-
-              </thead>
-
-
-              <tbody>
-
-                {filteredEmployees.map(
-                  (employee) => (
-
-                    <tr
-                      key={
-                        employee._id
-                      }
-                    >
-
-                      <td>
-
-                        <div className="employee-cell">
-
-                          <div className="employee-avatar">
-                            {(
-                              employee.employeeName ||
-                              'E'
-                            ).charAt(0)}
-                          </div>
-
-                          <div>
-
-                            <strong>
-                              {
-                                employee.employeeName
-                              }
-                            </strong>
-
-                            <span>
-                              {
-                                employee.employeeId
-                              }
-                            </span>
-
-                          </div>
-
-                        </div>
-
-                      </td>
-
-
-                      <td>
-                        {
-                          employee.department
-                        }
-                      </td>
-
-
-                      <td>
-                        {formatCurrency(
-                          employee.basic,
-                        )}
-                      </td>
-
-
-                      <td className="salary-positive">
-                        +
-                        {formatCurrency(
-                          employee.allowances,
-                        )}
-                      </td>
-
-
-                      <td className="salary-negative">
-                        -
-                        {formatCurrency(
-                          employee.deductions,
-                        )}
-                      </td>
-
-
-                      <td>
-
-                        <strong>
-                          {formatCurrency(
-                            employee.net,
-                          )}
-                        </strong>
-
-                      </td>
-
-
-                      <td>
-
-                        <span
-                          className={`payroll-status ${(
-                            employee.status ||
-                            ''
-                          ).toLowerCase()}`}
-                        >
-                          {
-                            employee.status
-                          }
-                        </span>
-
-                      </td>
-
-
-                      <td>
-
-                        <div className="payroll-actions">
-
-                          <button
-                            className="table-action-button"
-                            onClick={() =>
-                              setSelectedEmployee(
-                                employee,
-                              )
-                            }
-                          >
-                            View
-                          </button>
-
-
-                          <button
-                            className="table-action-button"
-                            onClick={() =>
-                              downloadPayslip(
-                                employee,
-                              )
-                            }
-                          >
-                            Payslip
-                          </button>
-
-                        </div>
-
-                      </td>
-
-                    </tr>
-
-                  ),
-                )}
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-        ) : (
-
-          <div className="empty-state">
-
-            <div className="empty-state-icon">
-              ₹
-            </div>
-
-            <h3>
-              No payroll records found
-            </h3>
-
-            <p>
-              Try changing your search
-              or filter options.
-            </p>
-
-            <button
-              className="secondary-button"
-              onClick={() => {
-                setSearch('')
-                setDepartment('All')
-                setStatus('All')
-              }}
-            >
-              Clear filters
-            </button>
-
-          </div>
-
-        )}
-
-      </section>
-
-
-      {/* PAYROLL PROCESSING INFO */}
-
-      <section className="payroll-info-grid">
-
-        <div className="content-card payroll-info-card">
-
-          <span className="module-eyebrow">
-            PROCESS
-          </span>
-
-          <h2>
-            Payroll processing
-          </h2>
-
-          <p>
-            Review payroll records and
-            process pending or draft
-            salaries for {month}.
-          </p>
-
-          <div className="payroll-process-steps">
-
-            <div className="process-step active">
-
-              <span>
-                01
-              </span>
-
-              <strong>
-                Review
-              </strong>
-
-            </div>
-
-            <div className="process-line" />
-
-            <div className="process-step">
-
-              <span>
-                02
-              </span>
-
-              <strong>
-                Process
-              </strong>
-
-            </div>
-
-            <div className="process-line" />
-
-            <div className="process-step">
-
-              <span>
-                03
-              </span>
-
-              <strong>
-                Complete
-              </strong>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <div className="content-card payroll-info-card">
-
-          <span className="module-eyebrow">
-            PAYSLIPS
-          </span>
-
-          <h2>
-            Employee payslips
-          </h2>
-
-          <p>
-            Generate a payslip for any
-            processed payroll record.
-          </p>
-
-          <div className="payslip-placeholder">
-
-            <span>
-              PDF
-            </span>
-
-            <div>
-
-              <strong>
-                Payslip generation
-              </strong>
-
-              <small>
-                Available from employee
-                payroll records
-              </small>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      {/* EMPLOYEE DETAIL MODAL */}
-
-      {selectedEmployee && (
-
-        <div
-          className="modal-overlay"
-          onClick={() =>
-            setSelectedEmployee(null)
+        <DataTable
+          caption={`Payroll for ${month}`}
+          columns={columns}
+          data={filtered}
+          loading={loading}
+          emptyState={
+            <EmptyState
+              icon={<IndianRupee size={20} aria-hidden="true" />}
+              title={isFiltered ? 'No records match' : `No payroll for ${month} yet`}
+              description={
+                isFiltered
+                  ? 'Try a different search or filter.'
+                  : 'Generate it for everyone in one go: salaries are copied from last time and adjusted for unpaid leave and absences.'
+              }
+              action={!isFiltered && <Button onClick={() => setShowGenerate(true)}>Generate payroll</Button>}
+            />
           }
-        >
+        />
+      </section>
 
-          <div
-            className="leave-modal payroll-modal"
-            onClick={(event) =>
-              event.stopPropagation()
-            }
-          >
+      {showGenerate && (
+        <GeneratePayrollModal
+          month={month}
+          onClose={() => setShowGenerate(false)}
+          onGenerated={(created) => {
+            setRecords((current) => [...created, ...current])
+            setShowGenerate(false)
+          }}
+        />
+      )}
 
-            <div className="modal-header">
+      {selected && (
+        <PayrollDetailModal
+          record={selected}
+          employee={employeeById[selected.employeeId]}
+          onClose={() => setSelected(null)}
+          onChanged={replace}
+          onDelete={handleDelete}
+        />
+      )}
 
-              <div>
-
-                <span className="module-eyebrow">
-                  PAYROLL DETAILS
-                </span>
-
-                <h2>
-                  {
-                    selectedEmployee.employeeName
-                  }
-                </h2>
-
+      {form && (
+        <Modal title="Add payroll record" onClose={() => !saving && setForm(null)}>
+          <form onSubmit={handleAdd}>
+            <p className="hire-help payroll-form-help">
+              For one-off entries. To pay everyone, use Generate payroll; it works out unpaid leave and absences for you.
+            </p>
+            <div className="form-grid">
+              <div className="form-group">
+                <label htmlFor="payroll-employee">Employee</label>
+                <EmployeePicker
+                  id="payroll-employee"
+                  value={form.employeeId}
+                  onChange={(employee) => setForm((current) => ({ ...current, employeeId: employee?.employeeId || '' }))}
+                  required
+                />
               </div>
-
-
-              <button
-                className="modal-close"
-                onClick={() =>
-                  setSelectedEmployee(
-                    null,
-                  )
-                }
-              >
-                ×
-              </button>
-
+              <div className="form-group">
+                <label htmlFor="payroll-form-month">Month</label>
+                <select
+                  id="payroll-form-month"
+                  value={form.month}
+                  onChange={(event) => setForm((current) => ({ ...current, month: event.target.value }))}
+                >
+                  {months.map((label) => <option key={label} value={label}>{label}</option>)}
+                </select>
+              </div>
+              {[
+                ['basic', 'Basic salary', true],
+                ['allowances', 'Allowances', false],
+                ['deductions', 'Deductions', false],
+              ].map(([field, label, required]) => (
+                <div className="form-group" key={field}>
+                  <label htmlFor={`payroll-${field}`}>{label}</label>
+                  <input
+                    id={`payroll-${field}`}
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    required={required}
+                    value={form[field]}
+                    onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))}
+                  />
+                </div>
+              ))}
+              <div className="form-group">
+                <label htmlFor="payroll-status">Status</label>
+                <select
+                  id="payroll-status"
+                  value={form.status}
+                  onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}
+                >
+                  {STATUSES.map((name) => <option key={name} value={name}>{name}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <span className="detail-label">Net</span>
+                <output className="form-static payroll-net">
+                  {formatMoney(Number(form.basic || 0) + Number(form.allowances || 0) - Number(form.deductions || 0))}
+                </output>
+              </div>
             </div>
-
-
-            <div className="payroll-detail-grid">
-
-              <div>
-
-                <span>
-                  Employee ID
-                </span>
-
-                <strong>
-                  {
-                    selectedEmployee.employeeId
-                  }
-                </strong>
-
-              </div>
-
-
-              <div>
-
-                <span>
-                  Department
-                </span>
-
-                <strong>
-                  {
-                    selectedEmployee.department
-                  }
-                </strong>
-
-              </div>
-
-
-              <div>
-
-                <span>
-                  Month
-                </span>
-
-                <strong>
-                  {
-                    selectedEmployee.month
-                  }
-                </strong>
-
-              </div>
-
-
-              <div>
-
-                <span>
-                  Basic Salary
-                </span>
-
-                <strong>
-                  {formatCurrency(
-                    selectedEmployee.basic,
-                  )}
-                </strong>
-
-              </div>
-
-
-              <div>
-
-                <span>
-                  Allowances
-                </span>
-
-                <strong className="salary-positive">
-                  +
-                  {formatCurrency(
-                    selectedEmployee.allowances,
-                  )}
-                </strong>
-
-              </div>
-
-
-              <div>
-
-                <span>
-                  Deductions
-                </span>
-
-                <strong className="salary-negative">
-                  -
-                  {formatCurrency(
-                    selectedEmployee.deductions,
-                  )}
-                </strong>
-
-              </div>
-
-
-              <div>
-
-                <span>
-                  Net Salary
-                </span>
-
-                <strong>
-                  {formatCurrency(
-                    selectedEmployee.net,
-                  )}
-                </strong>
-
-              </div>
-
-
-              <div>
-
-                <span>
-                  Status
-                </span>
-
-                <strong>
-                  {
-                    selectedEmployee.status
-                  }
-                </strong>
-
-              </div>
-
-            </div>
-
-
             <div className="modal-actions">
-
-              <button
-                className="secondary-button"
-                onClick={() =>
-                  handleDelete(
-                    selectedEmployee,
-                  )
-                }
-              >
-                Delete
-              </button>
-
-
-              <button
-                className="secondary-button"
-                onClick={() =>
-                  setSelectedEmployee(
-                    null,
-                  )
-                }
-              >
-                Close
-              </button>
-
-
-              <button
-                className="primary-button"
-                onClick={() =>
-                  downloadPayslip(
-                    selectedEmployee,
-                  )
-                }
-              >
-                Download Payslip
-              </button>
-
+              <Button variant="secondary" onClick={() => setForm(null)} disabled={saving}>Cancel</Button>
+              <Button type="submit" loading={saving} disabled={!form.employeeId}>Add record</Button>
             </div>
-
-          </div>
-
-        </div>
-
+          </form>
+        </Modal>
       )}
-
-
-      {/* ADD PAYROLL MODAL */}
-
-      {showModal && (
-
-        <div
-          className="modal-overlay"
-          onClick={() =>
-            setShowModal(false)
-          }
-        >
-
-          <div
-            className="leave-modal payroll-modal"
-            onClick={(event) =>
-              event.stopPropagation()
-            }
-          >
-
-            <div className="modal-header">
-
-              <div>
-
-                <span className="module-eyebrow">
-                  FINANCE
-                </span>
-
-                <h2>
-                  Add Payroll
-                </h2>
-
-              </div>
-
-
-              <button
-                className="modal-close"
-                type="button"
-                onClick={() =>
-                  setShowModal(false)
-                }
-              >
-                ×
-              </button>
-
-            </div>
-
-
-            <form
-              onSubmit={handleSubmit}
-            >
-
-              <div className="payroll-detail-grid">
-
-                {/* EMPLOYEE */}
-
-                <div>
-
-                  <span>
-                    Employee
-                  </span>
-
-                  <select
-                    value={
-                      form.employeeId
-                    }
-                    onChange={
-                      handleEmployeeChange
-                    }
-                    required
-                  >
-
-                    <option value="">
-                      Select employee
-                    </option>
-
-                    {employees.map(
-                      (employee) => (
-                        <option
-                          key={
-                            employee._id
-                          }
-                          value={
-                            employee.employeeId
-                          }
-                        >
-                          {
-                            employee.name
-                          } (
-                          {
-                            employee.employeeId
-                          }
-                          )
-                        </option>
-                      ),
-                    )}
-
-                  </select>
-
-                </div>
-
-
-                {/* EMPLOYEE ID */}
-
-                <div>
-
-                  <span>
-                    Employee ID
-                  </span>
-
-                  <input
-                    value={
-                      form.employeeId
-                    }
-                    readOnly
-                  />
-
-                </div>
-
-
-                {/* DEPARTMENT */}
-
-                <div>
-
-                  <span>
-                    Department
-                  </span>
-
-                  <input
-                    value={
-                      form.department
-                    }
-                    readOnly
-                  />
-
-                </div>
-
-
-                {/* MONTH */}
-
-                <div>
-
-                  <span>
-                    Month
-                  </span>
-
-                  <select
-                    name="month"
-                    value={
-                      form.month
-                    }
-                    onChange={
-                      handleFormChange
-                    }
-                  >
-
-                    {payrollMonths.map(
-                      (item) => (
-                        <option
-                          key={item}
-                          value={item}
-                        >
-                          {item}
-                        </option>
-                      ),
-                    )}
-
-                  </select>
-
-                </div>
-
-
-                {/* BASIC */}
-
-                <div>
-
-                  <span>
-                    Basic Salary
-                  </span>
-
-                  <input
-                    type="number"
-                    name="basic"
-                    value={
-                      form.basic
-                    }
-                    onChange={
-                      handleFormChange
-                    }
-                    min="0"
-                    required
-                  />
-
-                </div>
-
-
-                {/* ALLOWANCES */}
-
-                <div>
-
-                  <span>
-                    Allowances
-                  </span>
-
-                  <input
-                    type="number"
-                    name="allowances"
-                    value={
-                      form.allowances
-                    }
-                    onChange={
-                      handleFormChange
-                    }
-                    min="0"
-                  />
-
-                </div>
-
-
-                {/* DEDUCTIONS */}
-
-                <div>
-
-                  <span>
-                    Deductions
-                  </span>
-
-                  <input
-                    type="number"
-                    name="deductions"
-                    value={
-                      form.deductions
-                    }
-                    onChange={
-                      handleFormChange
-                    }
-                    min="0"
-                  />
-
-                </div>
-
-
-                {/* STATUS */}
-
-                <div>
-
-                  <span>
-                    Status
-                  </span>
-
-                  <select
-                    name="status"
-                    value={
-                      form.status
-                    }
-                    onChange={
-                      handleFormChange
-                    }
-                  >
-
-                    <option value="Draft">
-                      Draft
-                    </option>
-
-                    <option value="Pending">
-                      Pending
-                    </option>
-
-                    <option value="Processed">
-                      Processed
-                    </option>
-
-                  </select>
-
-                </div>
-
-              </div>
-
-
-              {/* PREVIEW */}
-
-              <div className="payroll-detail-grid">
-
-                <div>
-
-                  <span>
-                    Net Salary
-                  </span>
-
-                  <strong>
-                    {formatCurrency(
-                      Number(
-                        form.basic || 0,
-                      ) +
-                        Number(
-                          form.allowances ||
-                            0,
-                        ) -
-                        Number(
-                          form.deductions ||
-                            0,
-                        ),
-                    )}
-                  </strong>
-
-                </div>
-
-              </div>
-
-
-              <div className="modal-actions">
-
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() =>
-                    setShowModal(
-                      false,
-                    )
-                  }
-                >
-                  Cancel
-                </button>
-
-
-                <button
-                  type="submit"
-                  className="primary-button"
-                  disabled={saving}
-                >
-                  {saving
-                    ? 'Saving...'
-                    : 'Save Payroll'}
-                </button>
-
-              </div>
-
-            </form>
-
-          </div>
-
-        </div>
-
-      )}
-
     </div>
   )
 }

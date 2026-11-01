@@ -120,6 +120,9 @@ function Dashboard() {
   const pendingLeave = dashboard?.leave?.pending || 0
   const overdueOnboarding = dashboard?.onboarding?.overdueSteps || 0
   const openOnboarding = dashboard?.onboarding?.open || 0
+  const leavingSoon = dashboard?.offboarding?.leavingSoon || 0
+  const openOffboarding = dashboard?.offboarding?.open || 0
+  const documents = dashboard?.documents || {}
 
   const totalEmployees = employees.total || 0
   const activeEmployees = employees.active || 0
@@ -148,6 +151,24 @@ function Dashboard() {
     openOnboarding > 0 && {
       label: `${openOnboarding} ${openOnboarding === 1 ? 'person' : 'people'} onboarding`,
       path: '/onboarding',
+    },
+    documents.expired > 0 && {
+      label: `${plural(documents.expired, 'expired document')}`,
+      path: '/approvals',
+    },
+    documents.expiring > 0 && {
+      label: `${plural(documents.expiring, 'document')} expiring in 30 days`,
+      path: '/approvals',
+    },
+    documents.unverified > 0 && {
+      label: `${plural(documents.unverified, 'document')} to verify`,
+      path: '/approvals',
+    },
+    openOffboarding > 0 && {
+      label: leavingSoon > 0
+        ? `${leavingSoon} ${leavingSoon === 1 ? 'person' : 'people'} leaving in 14 days`
+        : `${openOffboarding} ${openOffboarding === 1 ? 'person' : 'people'} offboarding`,
+      path: '/offboarding',
     },
     overdueTasks > 0 && {
       label: `${plural(overdueTasks, 'overdue task')}`,

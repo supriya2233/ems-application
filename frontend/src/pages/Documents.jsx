@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import PageHeader from '../components/common/PageHeader'
 import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
@@ -12,6 +13,8 @@ import {
   deleteDocument,
 } from '../services/documentService'
 import { useConfirm, useToast } from '../components/common/feedbackContext'
+import { useLiveRefresh } from '../components/live/liveEventsContext'
+import { expiryInfo } from '../utils/documents'
 
 const initialForm = {
   documentId: '',
@@ -77,9 +80,36 @@ function Documents() {
     }
   }
 
+  // The nightly expiry check and other tabs update this page.
+  const refreshKey = useLiveRefresh(['documents', 'employees'])
+  const [searchParams] = useSearchParams()
+  const focusId = searchParams.get('focus')
+  const [verifyingId, setVerifyingId] = useState(null)
+
   useEffect(() => {
     loadDocuments()
-  }, [])
+  }, [refreshKey])
+
+  // Coming from Approvals (?focus=id): show that row.
+  useEffect(() => {
+    if (loading || !focusId) return
+    requestAnimationFrame(() => {
+      globalThis.document.getElementById(`document-${focusId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    })
+  }, [loading, focusId])
+
+  const handleVerify = async (record) => {
+    setVerifyingId(record._id)
+    try {
+      const updated = await updateDocument(record._id, { status: 'Active' })
+      setDocuments((current) => current.map((item) => (item._id === updated._id ? updated : item)))
+      toast.success(`“${record.documentName}” verified`)
+    } catch (err) {
+      toast.error(err.message || 'Could not verify the document')
+    } finally {
+      setVerifyingId(null)
+    }
+  }
 
   const filteredDocuments = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -413,7 +443,11 @@ function Documents() {
 
               <tbody>
                 {filteredDocuments.map((document) => (
-                  <tr key={document._id}>
+                  <tr
+                    key={document._id}
+                    id={`document-${document._id}`}
+                    className={document._id === focusId ? 'document-row-focus' : undefined}
+                  >
                     <td>
                       <div className="table-primary">
                         {document.documentName}
@@ -452,6 +486,11 @@ function Documents() {
                             document.expiryDate,
                           ).toLocaleDateString()
                         : '—'}
+                      {expiryInfo(document.expiryDate).text && (
+                        <div className={`document-expiry document-expiry-${expiryInfo(document.expiryDate).state}`}>
+                          {expiryInfo(document.expiryDate).text}
+                        </div>
+                      )}
                     </td>
 
                     <td>
@@ -466,6 +505,16 @@ function Documents() {
 
                     <td>
                       <div className="table-actions">
+                        {document.status === 'Pending Verification' && (
+                          <Button
+                            size="small"
+                            loading={verifyingId === document._id}
+                            onClick={() => handleVerify(document)}
+                          >
+                            Verify
+                          </Button>
+                        )}
+
                         <button
                           className="ui-button ui-button-secondary ui-button-small"
                           onClick={() =>

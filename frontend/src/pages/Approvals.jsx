@@ -11,7 +11,9 @@ import { useLeaveActions } from '../components/leave/useLeaveActions'
 import { useToast } from '../components/common/feedbackContext'
 import { useLiveRefresh } from '../components/live/liveEventsContext'
 import OnboardingStepApproval from '../components/onboarding/OnboardingStepApproval'
+import DocumentApproval from '../components/documents/DocumentApproval'
 import { getApprovals } from '../services/approvalService'
+import { updateDocument } from '../services/documentService'
 import { setOnboardingStep } from '../services/onboardingService'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { formatRange, plural } from '../utils/leave'
@@ -21,7 +23,8 @@ import { timeAgo } from '../utils/timeAgo'
  * One inbox for everything waiting for a decision.
  *   leave            pending leave requests (approve / reject)
  *   onboarding-step  overdue onboarding checklist steps (mark done)
- * Phase 6 adds expiring documents as another `kind`.
+ *   document-expiry  expired / expiring documents (renew)
+ *   document-verify  documents waiting for verification (verify)
  */
 function Approvals() {
   const { approve, reject } = useLeaveActions()
@@ -33,7 +36,7 @@ function Approvals() {
   const [busyId, setBusyId] = useState(null)
 
   // Another tab approving or adding a request updates this list.
-  const refreshKey = useLiveRefresh(['leave', 'settings', 'onboarding'])
+  const refreshKey = useLiveRefresh(['leave', 'settings', 'onboarding', 'documents'])
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
@@ -71,6 +74,19 @@ function Approvals() {
     }
   }
 
+  const verifyDocument = async (item) => {
+    setBusyId(item.id)
+    try {
+      await updateDocument(item.document._id, { status: 'Active' })
+      toast.success(`“${item.document.documentName}” verified`)
+      setItems((current) => current.filter((other) => other.id !== item.id))
+    } catch (err) {
+      toast.error(err.message || 'Could not verify the document')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   const markStepDone = async (item) => {
     setBusyId(item.id)
     try {
@@ -105,12 +121,23 @@ function Approvals() {
         <EmptyState
           icon={<Inbox size={24} aria-hidden="true" />}
           title="You’re all caught up"
-          description="Leave requests and overdue onboarding steps appear here as soon as they need you."
+          description="Leave requests, overdue onboarding steps and documents to renew or verify appear here as soon as they need you."
           action={<Link to="/leave" className="ui-button ui-button-secondary">Go to Leave Management</Link>}
         />
       ) : (
         <ul className="approval-list">
           {items.map((item) => {
+            if (item.kind === 'document-expiry' || item.kind === 'document-verify') {
+              return (
+                <DocumentApproval
+                  key={item.id}
+                  item={item}
+                  busy={busyId === item.id}
+                  onVerify={verifyDocument}
+                />
+              )
+            }
+
             if (item.kind === 'onboarding-step') {
               return (
                 <OnboardingStepApproval

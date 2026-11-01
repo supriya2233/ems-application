@@ -5,33 +5,21 @@ import {
   createPayroll,
   updatePayroll,
   deletePayroll,
+  getPayrollMonthsHandler,
+  generatePayrollHandler,
+  recalculatePayrollHandler,
 } from '../controllers/payrollController.js'
 
 const router = express.Router()
 
-router.get(
-  '/summary',
-  getPayrollSummary,
-)
+router.get('/summary', getPayrollSummary)
+router.get('/months', getPayrollMonthsHandler)
+router.post('/generate', generatePayrollHandler)
 
-router.get(
-  '/',
-  getPayroll,
-)
-
-router.post(
-  '/',
-  createPayroll,
-)
-
-router.put(
-  '/:id',
-  updatePayroll,
-)
-
-router.delete(
-  '/:id',
-  deletePayroll,
-)
+router.get('/', getPayroll)
+router.post('/', createPayroll)
+router.put('/:id', updatePayroll)
+router.post('/:id/recalculate', recalculatePayrollHandler)
+router.delete('/:id', deletePayroll)
 
 export default router

@@ -9,6 +9,7 @@ import Document from '../models/Document.js'
 import Asset from '../models/Asset.js'
 import Task from '../models/Task.js'
 import Recruitment from '../models/Recruitment.js'
+import Offboarding from '../models/Offboarding.js'
 import { AppError } from '../middleware/errorHandler.js'
 
 /*
@@ -37,6 +38,7 @@ export const EMPLOYEE_LINKS = [
   { model: Document, label: 'documents', idField: 'employeeId', nameField: 'employeeName', departmentField: null },
   { model: Asset, label: 'assets', idField: 'employeeId', nameField: 'employeeName', departmentField: null, optional: true },
   { model: Task, label: 'tasks', idField: 'assigneeId', nameField: 'assignee', departmentField: 'department' },
+  { model: Offboarding, label: 'offboarding', idField: 'employeeId', nameField: 'employeeName', departmentField: 'department' },
 ]
 
 export function getLink(model) {

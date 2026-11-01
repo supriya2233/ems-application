@@ -59,6 +59,27 @@ const payrollSchema = new mongoose.Schema(
       ],
       default: 'Draft',
     },
+
+    // "Final settlement" = the last, pro-rated pay of someone leaving
+    type: {
+      type: String,
+      enum: ['Regular', 'Final settlement'],
+      default: 'Regular',
+    },
+
+    // How the net was worked out (services/payrollRules.js).
+    // Empty for records typed in by hand.
+    breakdown: {
+      workingDays: Number,
+      employedDays: Number,
+      notEmployedDays: Number,
+      unpaidDays: Number,
+      absentDays: Number,
+      payableDays: Number,
+      dayRate: Number,
+      lossOfPay: Number,
+      otherDeductions: Number,
+    },
   },
   {
     timestamps: true,

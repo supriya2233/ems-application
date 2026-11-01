@@ -8,6 +8,7 @@ import Performance from '../models/Performance.js'
 import Document from '../models/Document.js'
 import Asset from '../models/Asset.js'
 import Task from '../models/Task.js'
+import Offboarding from '../models/Offboarding.js'
 import { calculateBalances } from './leaveRules.js'
 import { getSettings } from './settingsService.js'
 
@@ -56,7 +57,7 @@ export async function getEmployeeOverview(idOrEmployeeId) {
   const { employeeId } = employee
   const newestFirst = { createdAt: -1 }
 
-  const [attendance, leaves, payroll, onboarding, reviews, documents, assets, tasks, settings] =
+  const [attendance, leaves, payroll, onboarding, reviews, documents, assets, tasks, settings, offboarding] =
     await Promise.all([
       Attendance.find({ employeeId }).sort({ date: -1 }).limit(30).lean(),
       Leave.find({ employeeId }).sort({ from: -1 }).lean(),
@@ -72,6 +73,7 @@ export async function getEmployeeOverview(idOrEmployeeId) {
         .sort({ dueDate: 1 })
         .lean(),
       getSettings(),
+      Offboarding.find({ employeeId }).sort(newestFirst).lean(),
     ])
 
   return {
@@ -87,6 +89,7 @@ export async function getEmployeeOverview(idOrEmployeeId) {
     },
     payroll,
     onboarding,
+    offboarding,
     reviews,
     documents,
     assets,

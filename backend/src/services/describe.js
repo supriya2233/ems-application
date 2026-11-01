@@ -225,6 +225,37 @@ const MODULES = {
         ? { title: 'Document to verify', message: `“${doc.documentName}” for ${doc.employeeName} needs verification.`, tone: 'warning' }
         : null,
     }),
+    updated: (before, after) => {
+      if (!changed(before, after, 'status')) return null
+      if (before.status === 'Pending Verification' && after.status === 'Active') {
+        return { action: 'verified', summary: `Verified “${after.documentName}” for ${after.employeeName}` }
+      }
+      if (before.status === 'Expired' && after.status === 'Active') {
+        return { action: 'renewed', summary: `Renewed “${after.documentName}” for ${after.employeeName}` }
+      }
+      return null
+    },
+  },
+
+  offboarding: {
+    label: (doc) => `${doc.employeeName}’s offboarding`,
+    link: () => '/offboarding',
+    employeeId: (doc) => doc.employeeId,
+    created: (doc) => ({
+      summary: `Started offboarding ${doc.employeeName} (${doc.reason}), last working day ${formatDay(doc.lastWorkingDay)}`,
+      notify: {
+        title: 'Offboarding started',
+        message: `${doc.employeeName} (${doc.department}) leaves on ${formatDay(doc.lastWorkingDay)}. Reason: ${doc.reason}.`,
+        tone: 'info',
+      },
+    }),
+    updated: (before, after) =>
+      changed(before, after, 'lastWorkingDay')
+        ? {
+            action: 'rescheduled',
+            summary: `Moved ${after.employeeName}’s last working day to ${formatDay(after.lastWorkingDay)}`,
+          }
+        : null,
   },
 
   assets: {

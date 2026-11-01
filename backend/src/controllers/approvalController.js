@@ -2,6 +2,18 @@ import Leave from '../models/Leave.js'
 import { getBalances, getCoverage } from '../services/leaveService.js'
 import { balanceWarning } from '../services/leaveRules.js'
 import { getOverdueSteps } from '../services/onboardingService.js'
+import { getDocumentAlerts } from '../services/documentService.js'
+
+const documentSummary = (document) => ({
+  _id: document._id,
+  documentId: document.documentId,
+  documentName: document.documentName,
+  documentType: document.documentType,
+  employeeId: document.employeeId,
+  employeeName: document.employeeName,
+  expiryDate: document.expiryDate,
+  status: document.status,
+})
 
 /*
  * GET /api/approvals
@@ -9,6 +21,8 @@ import { getOverdueSteps } from '../services/onboardingService.js'
  * Each item has a `kind`:
  *   leave            a pending leave request (approve / reject)
  *   onboarding-step  an overdue onboarding checklist step (mark done)
+ *   document-expiry  a document expired or expiring within 30 days (renew)
+ *   document-verify  a document waiting for verification (verify)
  */
 export const getApprovals = async (req, res) => {
   const pending = await Leave.find({ status: 'Pending' }).sort({ createdAt: 1 }).lean()
@@ -54,7 +68,30 @@ export const getApprovals = async (req, res) => {
     step,
   }))
 
-  const items = [...leaveItems, ...onboardingItems].sort(
+  const { expiry, unverified } = await getDocumentAlerts()
+
+  // Expired / expiring: "waiting since" the start of the 30-day warning
+  // (expired ones since their expiry date), so the oldest come first.
+  const expiryItems = expiry.map(({ document, state, daysLeft }) => ({
+    kind: 'document-expiry',
+    id: `document-expiry-${document._id}`,
+    requestedAt:
+      state === 'expired'
+        ? document.expiryDate
+        : new Date(new Date(document.expiryDate).getTime() - 30 * 24 * 60 * 60 * 1000),
+    document: documentSummary(document),
+    state,
+    daysLeft,
+  }))
+
+  const verifyItems = unverified.map((document) => ({
+    kind: 'document-verify',
+    id: `document-verify-${document._id}`,
+    requestedAt: document.createdAt,
+    document: documentSummary(document),
+  }))
+
+  const items = [...leaveItems, ...onboardingItems, ...expiryItems, ...verifyItems].sort(
     (a, b) => new Date(a.requestedAt) - new Date(b.requestedAt),
   )
 

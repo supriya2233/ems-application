@@ -4,6 +4,9 @@ import Task from '../models/Task.js'
 import Leave from '../models/Leave.js'
 import Onboarding from '../models/Onboarding.js'
 import { getOverdueSteps } from '../services/onboardingService.js'
+import Offboarding from '../models/Offboarding.js'
+import { getDocumentAlerts } from '../services/documentService.js'
+import { leavingSoon } from '../services/offboardingService.js'
 
 export const getDashboard = async (req, res) => {
   try {
@@ -48,6 +51,11 @@ export const getDashboard = async (req, res) => {
     const openOnboarding = await Onboarding.countDocuments({ status: { $ne: 'Completed' } })
     const overdueSteps = (await getOverdueSteps()).length
 
+    // People leaving, and documents that need someone
+    const openOffboarding = await Offboarding.countDocuments({ status: { $ne: 'Completed' } })
+    const leavingIn14Days = await leavingSoon(14)
+    const documentAlerts = await getDocumentAlerts()
+
     // Overdue = due date has passed and task is not completed
     const overdueTasks = await Task.countDocuments({
       dueDate: { $lt: new Date() },
@@ -75,6 +83,17 @@ export const getDashboard = async (req, res) => {
           employees: onboardingEmployees,
           open: openOnboarding,
           overdueSteps,
+        },
+
+        offboarding: {
+          open: openOffboarding,
+          leavingSoon: leavingIn14Days,
+        },
+
+        documents: {
+          expired: documentAlerts.expiry.filter((item) => item.state === 'expired').length,
+          expiring: documentAlerts.expiry.filter((item) => item.state === 'expiring').length,
+          unverified: documentAlerts.unverified.length,
         },
 
         tasks: {
