@@ -7,6 +7,7 @@ import {
 import Payroll from './pages/Payroll'
 import Layout from './components/layout/Layout'
 import FeedbackProvider from './components/common/FeedbackProvider'
+import LiveEventsProvider from './components/live/LiveEventsProvider'
 
 import Dashboard from './pages/Dashboard'
 import Employees from './pages/Employees'
@@ -31,6 +32,7 @@ import Help from './pages/Help'
 function App() {
   return (
     <FeedbackProvider>
+    <LiveEventsProvider>
     <BrowserRouter>
 
       <Routes>
@@ -152,6 +154,7 @@ function App() {
       </Routes>
 
     </BrowserRouter>
+    </LiveEventsProvider>
     </FeedbackProvider>
   )
 }

@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 
 import { getNavigationMatch } from '../../config/navigation'
+import NotificationBell from '../live/NotificationBell'
 
 /*
  * Builds the breadcrumb for the current URL, e.g.
@@ -87,6 +88,8 @@ function Header({ openSidebar, isSidebarOpen }) {
       </div>
 
       <div className="header-right">
+
+        <NotificationBell />
 
         <time
           className="header-date"

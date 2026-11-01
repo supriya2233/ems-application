@@ -5,7 +5,7 @@ import { getDepartments } from '../../services/departmentService'
 
 const ROWS_TO_SHOW = 6
 
-function DepartmentOverview() {
+function DepartmentOverview({ refreshKey = 0 }) {
   const [departments, setDepartments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -13,7 +13,7 @@ function DepartmentOverview() {
   useEffect(() => {
     const loadDepartments = async () => {
       try {
-        setLoading(true)
+        // `loading` starts as true; live refreshes update quietly.
         setError('')
 
         const data = await getDepartments()
@@ -30,7 +30,7 @@ function DepartmentOverview() {
     }
 
     loadDepartments()
-  }, [])
+  }, [refreshKey])
 
   // Largest departments first; bars are relative to the largest.
   const sortedDepartments = [...departments]
