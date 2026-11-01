@@ -2,7 +2,7 @@
  * Document expiry rules as pure functions (tested in
  * test/documents.test.js).
  */
-import { dayKey, fromDayKey } from './leaveRules.js'
+import { dayKey, fromDayKey, startOfToday } from './leaveRules.js'
 
 export const EXPIRY_WARNING_DAYS = 30
 
@@ -16,7 +16,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
  *   { state: 'valid', daysLeft: 200 }
  * A document is still valid on its expiry date itself.
  */
-export function expiryState(document, today = new Date()) {
+export function expiryState(document, today = startOfToday()) {
   const expiry = dayKey(document?.expiryDate)
   if (!expiry) return { state: 'none', daysLeft: null }
 
@@ -33,7 +33,7 @@ export function expiryState(document, today = new Date()) {
  *   - renewing it (a future expiry date) turns "Expired" back to "Active"
  *   - changing the expiry date means a new reminder can be sent
  */
-export function applyExpiry(body, before = null, today = new Date()) {
+export function applyExpiry(body, before = null, today = startOfToday()) {
   const expiryDate = body.expiryDate !== undefined ? body.expiryDate : before?.expiryDate
   const status = body.status ?? before?.status ?? 'Active'
   const { state } = expiryState({ expiryDate }, today)

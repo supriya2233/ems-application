@@ -8,7 +8,8 @@ import {
   escapeRegex,
   pageSize,
 } from '../src/services/activityQuery.js'
-import { localTodayKey } from '../src/controllers/dashboardController.js'
+import { startOfToday, todayKey } from '../src/services/leaveRules.js'
+import { expiryState } from '../src/services/documentRules.js'
 
 const ID = '6a0000000000000000000001'
 
@@ -66,10 +67,17 @@ test('a tampered cursor is rejected', () => {
   assert.throws(() => decodeCursor('2026-11-01T10:00:00.000Z_notanid'), { status: 400 })
 })
 
-test('dashboard "today" is the local calendar day, not the UTC one', () => {
+test('"today" is the local calendar day, not the UTC one', () => {
   // 00:01 on 2 Nov where the server is: still 1 Nov in UTC for India
-  assert.equal(localTodayKey(new Date(2026, 10, 2, 0, 1)), '2026-11-02')
-  assert.equal(localTodayKey(new Date(2026, 10, 2, 23, 59)), '2026-11-02')
+  assert.equal(todayKey(new Date(2026, 10, 2, 0, 1)), '2026-11-02')
+  assert.equal(todayKey(new Date(2026, 10, 2, 23, 59)), '2026-11-02')
+  assert.equal(startOfToday(new Date(2026, 10, 2, 0, 1)).toISOString(), '2026-11-02T00:00:00.000Z')
+})
+
+test('day counts just after midnight use the new day', () => {
+  // A passport expiring on 20 Nov, checked at 00:30 on 2 Nov: 18 days, not 19
+  const today = startOfToday(new Date(2026, 10, 2, 0, 30))
+  assert.deepEqual(expiryState({ expiryDate: '2026-11-20' }, today), { state: 'expiring', daysLeft: 18 })
 })
 
 test('page size has a default and a ceiling', () => {

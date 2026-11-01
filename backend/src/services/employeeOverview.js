@@ -9,7 +9,7 @@ import Document from '../models/Document.js'
 import Asset from '../models/Asset.js'
 import Task from '../models/Task.js'
 import Offboarding from '../models/Offboarding.js'
-import { calculateBalances } from './leaveRules.js'
+import { calculateBalances, startOfToday } from './leaveRules.js'
 import { getSettings } from './settingsService.js'
 
 /*
@@ -85,7 +85,7 @@ export async function getEmployeeOverview(idOrEmployeeId) {
     leave: {
       records: leaves,
       summary: summariseLeave(leaves),
-      balances: calculateBalances(leaves, settings.leaveAllowances, new Date().getUTCFullYear()),
+      balances: calculateBalances(leaves, settings.leaveAllowances, startOfToday().getUTCFullYear()),
     },
     payroll,
     onboarding,

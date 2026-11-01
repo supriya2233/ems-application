@@ -3,6 +3,7 @@ import { Menu } from 'lucide-react'
 
 import { getNavigationMatch } from '../../config/navigation'
 import NotificationBell from '../live/NotificationBell'
+import { todayKey } from '../../utils/leave'
 
 /*
  * Builds the breadcrumb for the current URL, e.g.
@@ -93,7 +94,7 @@ function Header({ openSidebar, isSidebarOpen }) {
 
         <time
           className="header-date"
-          dateTime={today.toISOString().slice(0, 10)}
+          dateTime={todayKey()}
         >
           {today.toLocaleDateString('en-IN', {
             weekday: 'short',

@@ -6,7 +6,7 @@ import Payroll from '../models/Payroll.js'
 import { AppError } from '../middleware/errorHandler.js'
 import { publishChange } from './activity.js'
 import { publish } from './events.js'
-import { dayKey, fromDayKey, workingDates } from './leaveRules.js'
+import { dayKey, fromDayKey, startOfToday, workingDates } from './leaveRules.js'
 import {
   absentDays,
   calculatePay,
@@ -21,7 +21,7 @@ import { getSettings } from './settingsService.js'
 const formatMoney = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`
 
 /* Months for the picker (newest first). */
-export async function getPayrollMonths(today = new Date()) {
+export async function getPayrollMonths(today = startOfToday()) {
   const existing = await Payroll.distinct('month')
   return payrollMonths(today, existing)
 }

@@ -12,7 +12,7 @@
  *   loss of pay    gross − earned
  *   net            gross − loss of pay − other deductions (tax etc.)
  */
-import { dayKey, workingDates } from './leaveRules.js'
+import { dayKey, startOfToday, workingDates } from './leaveRules.js'
 
 export const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -61,7 +61,7 @@ export const monthOf = (date) => {
  * this month and the 10 before it, plus any month that already
  * has payroll records (older data stays reachable).
  */
-export function payrollMonths(today = new Date(), existing = []) {
+export function payrollMonths(today = startOfToday(), existing = []) {
   const now = new Date(today)
   const labels = []
 

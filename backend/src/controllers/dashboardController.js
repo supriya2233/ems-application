@@ -7,24 +7,16 @@ import { getOverdueSteps } from '../services/onboardingService.js'
 import Offboarding from '../models/Offboarding.js'
 import { getDocumentAlerts } from '../services/documentService.js'
 import { leavingSoon } from '../services/offboardingService.js'
-import { dayKey, fromDayKey } from '../services/leaveRules.js'
+import { dayKey, startOfToday } from '../services/leaveRules.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
-
-/*
- * Today's date on the server's own calendar, as a day key.
- * (dayKey(new Date()) gives the UTC date, which in India is still
- * "yesterday" until 05:30 in the morning.)
- */
-export const localTodayKey = (now = new Date()) =>
-  dayKey(new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())))
 
 /*
  * "Today at a glance": who is off, who is about to join, who is
  * about to leave. Short lists (a few names each) for the dashboard.
  */
 export async function getToday(now = new Date(), { joinWindowDays = 30, limit = 6 } = {}) {
-  const today = fromDayKey(localTodayKey(now))
+  const today = startOfToday(now)
   const joinUntil = new Date(today.getTime() + joinWindowDays * DAY_MS)
 
   const [onLeave, joiners, leavers] = await Promise.all([
@@ -123,9 +115,10 @@ export const getDashboard = async (req, res) => {
     const documentAlerts = await getDocumentAlerts()
     const today = await getToday()
 
-    // Overdue = due date has passed and task is not completed
+    // Overdue = due before today and not completed. A task due today
+    // isn't late yet (same rule as the Tasks page).
     const overdueTasks = await Task.countDocuments({
-      dueDate: { $lt: new Date() },
+      dueDate: { $lt: startOfToday() },
       status: { $ne: 'Completed' },
     })
 

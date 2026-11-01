@@ -12,6 +12,7 @@ import {
   deletePerformance,
 } from '../services/performanceService'
 import { useConfirm, useToast } from '../components/common/feedbackContext'
+import { todayKey } from '../utils/leave'
 
 const initialForm = {
   reviewId: '',
@@ -128,7 +129,7 @@ function Performance() {
 
     setForm({
       ...initialForm,
-      reviewDate: new Date().toISOString().split('T')[0],
+      reviewDate: todayKey(),
     })
 
     setShowModal(true)

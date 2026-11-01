@@ -26,6 +26,22 @@ export function fromDayKey(key) {
   return new Date(`${key}T00:00:00.000Z`)
 }
 
+/*
+ * Today's date on the server's own calendar (its time zone, which
+ * can be set with the TZ environment variable, e.g. TZ=Asia/Kolkata).
+ *
+ * Not dayKey(new Date()): that is the UTC date, which in India is
+ * still "yesterday" until 05:30 in the morning.
+ */
+export function todayKey(now = new Date()) {
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${month}-${day}`
+}
+
+/* Today as a stored day (UTC midnight), ready to compare with saved dates. */
+export const startOfToday = (now = new Date()) => fromDayKey(todayKey(now))
+
 /* Every calendar day from `from` to `to`, inclusive, as day keys. */
 export function listDays(from, to) {
   const start = fromDayKey(dayKey(from))

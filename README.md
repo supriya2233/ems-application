@@ -133,7 +133,7 @@ npm run dev:demo       # frontend wired to the demo backend (.env.demo)
 ## Tests
 
 ```bash
-cd backend  && npm test      # 60 unit tests: leave day counting, balances, payroll maths,
+cd backend  && npm test      # 61 unit tests: leave day counting, balances, payroll maths,
                              # onboarding/offboarding status, document expiry, IDs, activity paging
 cd frontend && npm run lint && npm run build
 ```
@@ -194,8 +194,7 @@ docs/
 ## Known limitations
 
 - No authentication or roles. This was a deliberate scope decision; all actions are "Administrator".
-- Some server-side checks (e.g. the scheduled jobs) use the UTC date as "today". In India
-  that is the previous day until 05:30, so between midnight and 05:30 a day count can be
-  off by one. The dashboard's *Today* panel already uses local time.
+- "Today" is the server's local calendar day. If the server runs in another time zone than
+  its users (most cloud hosts use UTC), start it with e.g. `TZ=Asia/Kolkata`.
 - Live updates assume a single server process (events are in memory).
 - Analytics, Announcements, Reports and Help still show sample data.
