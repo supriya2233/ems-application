@@ -41,6 +41,7 @@ const STATUS_TONES = {
   'work from home': 'info',
   remote: 'info',
   applied: 'info',
+  onboarding: 'info',
 
   // warning
   pending: 'warning',

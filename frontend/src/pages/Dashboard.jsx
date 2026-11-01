@@ -118,6 +118,8 @@ function Dashboard() {
   const departments = dashboard?.departments || {}
   const tasks = dashboard?.tasks || {}
   const pendingLeave = dashboard?.leave?.pending || 0
+  const overdueOnboarding = dashboard?.onboarding?.overdueSteps || 0
+  const openOnboarding = dashboard?.onboarding?.open || 0
 
   const totalEmployees = employees.total || 0
   const activeEmployees = employees.active || 0
@@ -138,6 +140,14 @@ function Dashboard() {
     pendingLeave > 0 && {
       label: `${plural(pendingLeave, 'leave request')} to review`,
       path: '/approvals',
+    },
+    overdueOnboarding > 0 && {
+      label: `${plural(overdueOnboarding, 'overdue onboarding step')}`,
+      path: '/approvals',
+    },
+    openOnboarding > 0 && {
+      label: `${openOnboarding} ${openOnboarding === 1 ? 'person' : 'people'} onboarding`,
+      path: '/onboarding',
     },
     overdueTasks > 0 && {
       label: `${plural(overdueTasks, 'overdue task')}`,

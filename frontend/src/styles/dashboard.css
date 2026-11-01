@@ -392,6 +392,14 @@
   background: var(--color-warning-soft);
 }
 
+.dash-status-onboarding {
+  background: var(--color-primary-soft);
+}
+
+.dash-status-onboarding::before {
+  background: var(--color-primary);
+}
+
 .dash-status-on-leave::before {
   background: var(--color-warning);
 }

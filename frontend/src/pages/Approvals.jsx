@@ -8,19 +8,24 @@ import EmptyState from '../components/common/EmptyState'
 import PageHeader from '../components/common/PageHeader'
 import LeaveBalances from '../components/leave/LeaveBalances'
 import { useLeaveActions } from '../components/leave/useLeaveActions'
+import { useToast } from '../components/common/feedbackContext'
 import { useLiveRefresh } from '../components/live/liveEventsContext'
+import OnboardingStepApproval from '../components/onboarding/OnboardingStepApproval'
 import { getApprovals } from '../services/approvalService'
+import { setOnboardingStep } from '../services/onboardingService'
 import { getAvatarColor, getInitials } from '../utils/avatar'
 import { formatRange, plural } from '../utils/leave'
 import { timeAgo } from '../utils/timeAgo'
 
 /*
  * One inbox for everything waiting for a decision.
- * Today: leave requests. Later phases add onboarding steps and
- * expiring documents as new `kind`s.
+ *   leave            pending leave requests (approve / reject)
+ *   onboarding-step  overdue onboarding checklist steps (mark done)
+ * Phase 6 adds expiring documents as another `kind`.
  */
 function Approvals() {
   const { approve, reject } = useLeaveActions()
+  const toast = useToast()
 
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -28,7 +33,7 @@ function Approvals() {
   const [busyId, setBusyId] = useState(null)
 
   // Another tab approving or adding a request updates this list.
-  const refreshKey = useLiveRefresh(['leave', 'settings'])
+  const refreshKey = useLiveRefresh(['leave', 'settings', 'onboarding'])
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
@@ -66,6 +71,19 @@ function Approvals() {
     }
   }
 
+  const markStepDone = async (item) => {
+    setBusyId(item.id)
+    try {
+      await setOnboardingStep(item.onboarding._id, item.step.key, { done: true })
+      toast.success(`${item.step.label} ticked off for ${item.onboarding.employeeName}`)
+      setItems((current) => current.filter((other) => other.id !== item.id))
+    } catch (err) {
+      toast.error(err.message || 'Could not update the step')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <div className="approvals-page">
       <PageHeader
@@ -75,7 +93,7 @@ function Approvals() {
             ? 'Everything waiting for your decision'
             : items.length === 0
               ? 'Everything waiting for your decision · all clear'
-              : `${plural(items.length, 'request')} waiting for your decision, oldest first`
+              : `${plural(items.length, 'item')} waiting for you, oldest first`
         }
       />
 
@@ -87,12 +105,23 @@ function Approvals() {
         <EmptyState
           icon={<Inbox size={24} aria-hidden="true" />}
           title="You’re all caught up"
-          description="New leave requests will appear here as soon as they are made."
+          description="Leave requests and overdue onboarding steps appear here as soon as they need you."
           action={<Link to="/leave" className="ui-button ui-button-secondary">Go to Leave Management</Link>}
         />
       ) : (
         <ul className="approval-list">
           {items.map((item) => {
+            if (item.kind === 'onboarding-step') {
+              return (
+                <OnboardingStepApproval
+                  key={item.id}
+                  item={item}
+                  busy={busyId === item.id}
+                  onDone={markStepDone}
+                />
+              )
+            }
+
             const { leave, balance, warnings } = item
             const busy = busyId === item.id
 

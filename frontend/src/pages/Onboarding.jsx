@@ -1,17 +1,34 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { CalendarClock, CircleAlert, ClipboardCheck, ListChecks, Plus } from 'lucide-react'
+
 import PageHeader from '../components/common/PageHeader'
 import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
 import EmployeePicker from '../components/common/EmployeePicker'
 import SearchBar from '../components/common/SearchBar'
 import Badge from '../components/common/Badge'
+import EmptyState from '../components/common/EmptyState'
+import StatCard from '../components/common/StatCard'
+import EquipmentStepModal from '../components/onboarding/EquipmentStepModal'
+import OnboardingCard from '../components/onboarding/OnboardingCard'
 import {
   getOnboardingRecords,
   createOnboarding,
   updateOnboarding,
   deleteOnboarding,
+  setOnboardingStep,
 } from '../services/onboardingService'
+import { getAssets } from '../services/assetService'
 import { useConfirm, useToast } from '../components/common/feedbackContext'
+import { useLiveRefresh } from '../components/live/liveEventsContext'
+import { formatDay, todayKey } from '../utils/leave'
+import {
+  checklistOf,
+  ONBOARDING_STATUSES,
+  ONBOARDING_STEPS,
+  ONBOARDING_TYPES,
+} from '../utils/onboarding'
 
 const initialForm = {
   onboardingId: '',
@@ -20,7 +37,6 @@ const initialForm = {
   department: '',
   joiningDate: '',
   onboardingType: 'New Hire',
-  status: 'Not Started',
   documents: false,
   orientation: false,
   equipment: false,
@@ -28,95 +44,155 @@ const initialForm = {
   notes: '',
 }
 
-const statusOptions = [
-  'Not Started',
-  'In Progress',
-  'Completed',
-]
-
-const typeOptions = [
-  'New Hire',
-  'Internal Transfer',
-  'Rehire',
-]
+const dayOf = (value) => (value ? String(new Date(value).toISOString()).slice(0, 10) : '')
 
 function Onboarding() {
   const confirm = useConfirm()
   const toast = useToast()
+  const [searchParams] = useSearchParams()
+  const focusId = searchParams.get('focus')
 
   const [records, setRecords] = useState([])
+  const [assets, setAssets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('All')
+  const [statusFilter, setStatusFilter] = useState('Open')
 
   const [showModal, setShowModal] = useState(false)
   const [editingRecord, setEditingRecord] = useState(null)
   const [viewRecord, setViewRecord] = useState(null)
-
   const [form, setForm] = useState(initialForm)
   const [saving, setSaving] = useState(false)
 
-  const loadRecords = async () => {
-    try {
-      setLoading(true)
-      setError('')
+  const [busy, setBusy] = useState(null) // { id, step } while a step saves
+  const [equipmentFor, setEquipmentFor] = useState(null)
 
-      const data = await getOnboardingRecords()
-      setRecords(data)
-    } catch (err) {
-      setError(err.message || 'Failed to load onboarding records')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Hires, ticks in another tab, and asset hand-overs refresh the page.
+  const refreshKey = useLiveRefresh(['onboarding', 'employees', 'assets'])
 
   useEffect(() => {
-    loadRecords()
-  }, [])
+    let ignore = false
+
+    Promise.all([getOnboardingRecords(), getAssets().catch(() => [])])
+      .then(([data, assetList]) => {
+        if (!ignore) {
+          setRecords(data)
+          setAssets(assetList)
+          setError('')
+        }
+      })
+      .catch((err) => {
+        if (!ignore) setError(err.message || 'Failed to load onboarding records')
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false)
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [refreshKey])
+
+  // Coming from Approvals (?focus=id): show that card, even if finished.
+  useEffect(() => {
+    if (loading || !focusId) return
+    const record = records.find((item) => item._id === focusId)
+    if (record?.status === 'Completed') setStatusFilter('All')
+    requestAnimationFrame(() => {
+      document.getElementById(`onboarding-${focusId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    })
+  }, [loading, focusId, records])
+
+  const replace = (updated) =>
+    setRecords((current) => current.map((record) => (record._id === updated._id ? updated : record)))
+
+  const assetById = useMemo(
+    () => Object.fromEntries(assets.map((asset) => [asset._id, asset])),
+    [assets],
+  )
+
+  /* ---------------- Summary & filters ---------------- */
+
+  const today = todayKey()
+
+  const summary = useMemo(() => {
+    const open = records.filter((record) => record.status !== 'Completed')
+    const soon = new Date(`${today}T00:00:00Z`)
+    soon.setUTCDate(soon.getUTCDate() + 14)
+    const soonKey = soon.toISOString().slice(0, 10)
+
+    return {
+      open: open.length,
+      overdue: open.reduce((sum, record) => sum + checklistOf(record, today).filter((step) => step.overdue).length, 0),
+      joiningSoon: open.filter((record) => dayOf(record.joiningDate) >= today && dayOf(record.joiningDate) <= soonKey).length,
+      completed: records.length - open.length,
+    }
+  }, [records, today])
 
   const filteredRecords = useMemo(() => {
     const query = search.trim().toLowerCase()
 
-    return records.filter((record) => {
-      const matchesSearch =
-        !query ||
-        record.onboardingId?.toLowerCase().includes(query) ||
-        record.employeeId?.toLowerCase().includes(query) ||
-        record.employeeName?.toLowerCase().includes(query) ||
-        record.department?.toLowerCase().includes(query)
+    return records
+      .filter((record) => {
+        const matchesSearch =
+          !query ||
+          [record.onboardingId, record.employeeId, record.employeeName, record.department]
+            .some((field) => String(field || '').toLowerCase().includes(query))
 
-      const matchesStatus =
-        statusFilter === 'All' ||
-        record.status === statusFilter
+        const matchesStatus =
+          statusFilter === 'All' ||
+          (statusFilter === 'Open' ? record.status !== 'Completed' : record.status === statusFilter)
 
-      return matchesSearch && matchesStatus
-    })
+        return matchesSearch && matchesStatus
+      })
+      // Soonest joiners first
+      .sort((a, b) => new Date(a.joiningDate) - new Date(b.joiningDate))
   }, [records, search, statusFilter])
 
-  const summary = useMemo(() => {
-    return {
-      total: records.length,
-      notStarted: records.filter(
-        (record) => record.status === 'Not Started',
-      ).length,
-      inProgress: records.filter(
-        (record) => record.status === 'In Progress',
-      ).length,
-      completed: records.filter(
-        (record) => record.status === 'Completed',
-      ).length,
+  /* ---------------- Ticking steps ---------------- */
+
+  const saveStep = async (record, step, done, assetId) => {
+    setBusy({ id: record._id, step })
+    try {
+      const updated = await setOnboardingStep(record._id, step, { done, assetId })
+      replace(updated)
+
+      if (assetId) {
+        // The asset is now assigned; refresh the list for its name.
+        getAssets().then(setAssets).catch(() => {})
+      }
+
+      if (updated.status === 'Completed' && record.status !== 'Completed') {
+        toast.success(`${record.employeeName}’s onboarding is complete`)
+      } else {
+        const label = ONBOARDING_STEPS.find((item) => item.key === step)?.label
+        toast.success(`${label} ${done ? 'ticked off' : 'reopened'} for ${record.employeeName}`)
+      }
+      return true
+    } catch (err) {
+      toast.error(err.message || 'Could not update the step')
+      return false
+    } finally {
+      setBusy(null)
     }
-  }, [records])
+  }
+
+  const handleToggle = (record, step, done) => {
+    // Ticking equipment first asks which asset to hand over.
+    if (step === 'equipment' && done) {
+      setEquipmentFor(record)
+      return
+    }
+    saveStep(record, step, done)
+  }
+
+  /* ---------------- Add / edit / delete ---------------- */
 
   const openAddModal = () => {
     setEditingRecord(null)
-
-    setForm({
-      ...initialForm,
-    })
-
+    setForm({ ...initialForm })
     setShowModal(true)
   }
 
@@ -128,14 +204,8 @@ function Onboarding() {
       employeeId: record.employeeId || '',
       employeeName: record.employeeName || '',
       department: record.department || '',
-      joiningDate: record.joiningDate
-        ? new Date(record.joiningDate)
-            .toISOString()
-            .split('T')[0]
-        : '',
-      onboardingType:
-        record.onboardingType || 'New Hire',
-      status: record.status || 'Not Started',
+      joiningDate: dayOf(record.joiningDate),
+      onboardingType: record.onboardingType || 'New Hire',
       documents: Boolean(record.documents),
       orientation: Boolean(record.orientation),
       equipment: Boolean(record.equipment),
@@ -187,28 +257,21 @@ function Onboarding() {
       setError('')
 
       if (editingRecord) {
-        const updated = await updateOnboarding(
-          editingRecord._id,
-          form,
-        )
-
-        setRecords((current) =>
-          current.map((record) =>
-            record._id === updated._id ? updated : record,
-          ),
-        )
+        const updated = await updateOnboarding(editingRecord._id, form)
+        replace(updated)
+        toast.success('Onboarding updated')
       } else {
         const created = await createOnboarding(form)
-
         setRecords((current) => [created, ...current])
+        toast.success(`Onboarding started for ${created.employeeName}`)
       }
 
-      closeModal()
+      setSaving(false)
+      setShowModal(false)
+      setEditingRecord(null)
+      setForm(initialForm)
     } catch (err) {
-      setError(
-        err.message || 'Failed to save onboarding record',
-      )
-    } finally {
+      setError(err.message || 'Failed to save onboarding record')
       setSaving(false)
     }
   }
@@ -225,259 +288,129 @@ function Onboarding() {
 
     try {
       setError('')
-
       await deleteOnboarding(record._id)
-
-      setRecords((current) =>
-        current.filter((item) => item._id !== record._id),
-      )
-
+      setRecords((current) => current.filter((item) => item._id !== record._id))
       toast.success('Onboarding record deleted')
     } catch (err) {
-      setError(
-        err.message || 'Failed to delete onboarding record',
-      )
+      setError(err.message || 'Failed to delete onboarding record')
     }
   }
 
-  const getStatusVariant = (status) => {
-    switch (status) {
-      case 'Completed':
-        return 'success'
-      case 'In Progress':
-        return 'info'
-      default:
-        return 'neutral'
-    }
-  }
-
-  const completedSteps = (record) =>
-    [
-      record.documents,
-      record.orientation,
-      record.equipment,
-      record.systemAccess,
-    ].filter(Boolean).length
+  const isFiltered = search || statusFilter !== 'Open'
 
   return (
-    <div className="page-container onboarding-page">
+    <div className="onboarding-page">
       <PageHeader
         title="Onboarding"
-        subtitle="Manage employee onboarding and track completion progress."
-        actions={
-          <Button onClick={openAddModal}>
-            + Start Onboarding
+        description="Checklists for new joiners. Each step has a due date, and the status follows the checklist."
+        action={
+          <Button icon={<Plus size={16} aria-hidden="true" />} onClick={openAddModal}>
+            Start onboarding
           </Button>
         }
       />
 
-      {error && (
-        <div className="ui-alert ui-alert-error">
-          {error}
-        </div>
-      )}
+      {error && <div className="ui-alert ui-alert-error" role="alert">{error}</div>}
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-card-label">
-            Total Onboarding
-          </div>
-          <div className="stat-card-value">
-            {summary.total}
-          </div>
-        </div>
+      <section className="stats-grid" aria-label="Onboarding at a glance">
+        <StatCard
+          title="In onboarding"
+          value={summary.open}
+          icon={<ListChecks size={16} aria-hidden="true" />}
+          description="not finished yet"
+        />
+        <StatCard
+          title="Overdue steps"
+          value={summary.overdue}
+          icon={<CircleAlert size={16} aria-hidden="true" />}
+          warning={summary.overdue > 0}
+          description={summary.overdue > 0 ? <Link to="/approvals">See them in Approvals</Link> : 'Everything on time'}
+        />
+        <StatCard
+          title="Joining soon"
+          value={summary.joiningSoon}
+          icon={<CalendarClock size={16} aria-hidden="true" />}
+          description="in the next 14 days"
+        />
+        <StatCard
+          title="Completed"
+          value={summary.completed}
+          icon={<ClipboardCheck size={16} aria-hidden="true" />}
+          description="all steps done"
+        />
+      </section>
 
-        <div className="stat-card">
-          <div className="stat-card-label">
-            Not Started
-          </div>
-          <div className="stat-card-value">
-            {summary.notStarted}
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-card-label">
-            In Progress
-          </div>
-          <div className="stat-card-value">
-            {summary.inProgress}
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-card-label">
-            Completed
-          </div>
-          <div className="stat-card-value">
-            {summary.completed}
-          </div>
-        </div>
-      </div>
-
-      <div className="ui-card">
-        <div className="ui-card-header">
+      <section className="ui-card onboarding-panel" aria-labelledby="onboarding-title">
+        <div className="recruitment-panel-header">
           <div>
-            <h2>Onboarding Records</h2>
-            <p>
-              Track new hires and monitor their onboarding progress.
-            </p>
+            <h2 id="onboarding-title">Checklists</h2>
+            <p>Tick a step as soon as it’s done; it saves straight away.</p>
           </div>
+          <span className="leave-count">{filteredRecords.length} shown</span>
         </div>
 
         <div className="recruitment-toolbar">
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Search employees..."
-          />
+          <SearchBar value={search} onChange={setSearch} placeholder="Search name, ID or department…" />
 
           <select
-            className="ui-select"
+            aria-label="Filter by status"
             value={statusFilter}
-            onChange={(event) =>
-              setStatusFilter(event.target.value)
-            }
+            onChange={(event) => setStatusFilter(event.target.value)}
           >
-            <option value="All">All Statuses</option>
-
-            {statusOptions.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
+            <option value="Open">Not finished</option>
+            <option value="All">All</option>
+            {ONBOARDING_STATUSES.map((status) => (
+              <option key={status} value={status}>{status}</option>
             ))}
           </select>
         </div>
 
         {loading ? (
-          <div className="ui-loading">
-            Loading onboarding records...
-          </div>
+          <p className="ui-loading">Loading onboarding…</p>
         ) : filteredRecords.length === 0 ? (
-          <div className="ui-empty-state">
-            <div className="ui-empty-state-title">
-              No onboarding records found
-            </div>
-
-            <div className="ui-empty-state-description">
-              Start an onboarding record to begin tracking employee
-              onboarding.
-            </div>
-          </div>
+          <EmptyState
+            title={isFiltered ? 'Nobody matches' : 'Nobody is onboarding'}
+            description={
+              isFiltered
+                ? 'Try a different search or filter.'
+                : 'Hire a selected candidate on the Recruitment page, or start onboarding for an existing employee.'
+            }
+            action={!isFiltered && <Link to="/recruitment" className="ui-button ui-button-secondary">Go to Recruitment</Link>}
+          />
         ) : (
-          <div className="ui-table-wrapper">
-            <table className="ui-table">
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  <th>Department</th>
-                  <th>Joining Date</th>
-                  <th>Type</th>
-                  <th>Progress</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredRecords.map((record) => {
-                  const steps = completedSteps(record)
-
-                  return (
-                    <tr key={record._id}>
-                      <td>
-                        <div className="table-primary">
-                          {record.employeeName}
-                        </div>
-
-                        <div className="table-secondary">
-                          {record.employeeId}
-                        </div>
-                      </td>
-
-                      <td>{record.department}</td>
-
-                      <td>
-                        {record.joiningDate
-                          ? new Date(
-                              record.joiningDate,
-                            ).toLocaleDateString()
-                          : '—'}
-                      </td>
-
-                      <td>{record.onboardingType}</td>
-
-                      <td>
-                        <div>
-                          <strong>{steps}/4</strong>
-                          <div className="table-secondary">
-                            steps completed
-                          </div>
-                        </div>
-                      </td>
-
-                      <td>
-                        <Badge
-                          variant={getStatusVariant(
-                            record.status,
-                          )}
-                        >
-                          {record.status}
-                        </Badge>
-                      </td>
-
-                      <td>
-                        <div className="table-actions">
-                          <button
-                            className="ui-button ui-button-secondary ui-button-small"
-                            onClick={() =>
-                              setViewRecord(record)
-                            }
-                          >
-                            View
-                          </button>
-
-                          <button
-                            className="ui-button ui-button-secondary ui-button-small"
-                            onClick={() =>
-                              openEditModal(record)
-                            }
-                          >
-                            Edit
-                          </button>
-
-                          <button
-                            className="ui-button ui-button-danger ui-button-small"
-                            onClick={() =>
-                              handleDelete(record)
-                            }
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          <div className="onboarding-grid">
+            {filteredRecords.map((record) => (
+              <OnboardingCard
+                key={record._id}
+                record={record}
+                asset={assetById[record.equipmentAssetId]}
+                busyStep={busy?.id === record._id ? busy.step : null}
+                highlighted={record._id === focusId}
+                onToggle={handleToggle}
+                onView={setViewRecord}
+                onEdit={openEditModal}
+                onDelete={handleDelete}
+              />
+            ))}
           </div>
         )}
-      </div>
+      </section>
+
+      {equipmentFor && (
+        <EquipmentStepModal
+          record={equipmentFor}
+          onClose={() => setEquipmentFor(null)}
+          onConfirm={async (assetId) => {
+            const ok = await saveStep(equipmentFor, 'equipment', true, assetId || undefined)
+            if (ok) setEquipmentFor(null)
+            return ok
+          }}
+        />
+      )}
 
       {showModal && (
-        <Modal
-          title={
-            editingRecord
-              ? 'Edit Onboarding'
-              : 'Start Onboarding'
-          }
-          onClose={closeModal}
-        >
-          <form
-            className="ui-form"
-            onSubmit={handleSubmit}
-          >
+        <Modal title={editingRecord ? 'Edit Onboarding' : 'Start Onboarding'} onClose={closeModal}>
+          <form className="ui-form" onSubmit={handleSubmit}>
             <div className="form-grid">
               <div className="form-group">
                 <label htmlFor="onboardingId">Onboarding ID</label>
@@ -504,98 +437,57 @@ function Onboarding() {
               </div>
 
               <div className="form-group">
-                <label>Joining Date</label>
-
+                <label htmlFor="onboarding-joining">Joining Date</label>
                 <input
+                  id="onboarding-joining"
                   type="date"
                   name="joiningDate"
                   value={form.joiningDate}
                   onChange={handleChange}
                   required
+                  aria-describedby="onboarding-joining-help"
                 />
+                <small id="onboarding-joining-help" className="hire-help">
+                  Step due dates are worked out from this date.
+                </small>
               </div>
 
               <div className="form-group">
-                <label>Onboarding Type</label>
-
+                <label htmlFor="onboarding-type">Onboarding Type</label>
                 <select
+                  id="onboarding-type"
                   name="onboardingType"
                   value={form.onboardingType}
                   onChange={handleChange}
                 >
-                  {typeOptions.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Status</label>
-
-                <select
-                  name="status"
-                  value={form.status}
-                  onChange={handleChange}
-                >
-                  {statusOptions.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
+                  {ONBOARDING_TYPES.map((type) => (
+                    <option key={type} value={type}>{type}</option>
                   ))}
                 </select>
               </div>
             </div>
 
-            <div className="onboarding-checklist">
-              <h3>Onboarding Checklist</h3>
+            <fieldset className="onboarding-checklist">
+              <legend>Checklist</legend>
+              <p className="hire-help">The status is set from these: none ticked is Not Started, all four is Completed.</p>
 
-              <label className="checkbox-row">
-                <input
-                  type="checkbox"
-                  name="documents"
-                  checked={form.documents}
-                  onChange={handleChange}
-                />
-                <span>Documents completed</span>
-              </label>
-
-              <label className="checkbox-row">
-                <input
-                  type="checkbox"
-                  name="orientation"
-                  checked={form.orientation}
-                  onChange={handleChange}
-                />
-                <span>Orientation completed</span>
-              </label>
-
-              <label className="checkbox-row">
-                <input
-                  type="checkbox"
-                  name="equipment"
-                  checked={form.equipment}
-                  onChange={handleChange}
-                />
-                <span>Equipment assigned</span>
-              </label>
-
-              <label className="checkbox-row">
-                <input
-                  type="checkbox"
-                  name="systemAccess"
-                  checked={form.systemAccess}
-                  onChange={handleChange}
-                />
-                <span>System access provided</span>
-              </label>
-            </div>
+              {ONBOARDING_STEPS.map((step) => (
+                <label key={step.key} className="checkbox-row">
+                  <input
+                    type="checkbox"
+                    name={step.key}
+                    checked={form[step.key]}
+                    onChange={handleChange}
+                  />
+                  <span>{step.label}</span>
+                </label>
+              ))}
+            </fieldset>
 
             <div className="form-group">
-              <label>Notes</label>
-
+              <label htmlFor="onboarding-notes">Notes</label>
               <textarea
+                id="onboarding-notes"
                 name="notes"
                 value={form.notes}
                 onChange={handleChange}
@@ -605,24 +497,12 @@ function Onboarding() {
             </div>
 
             <div className="modal-actions">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={closeModal}
-                disabled={saving}
-              >
+              <Button type="button" variant="secondary" onClick={closeModal} disabled={saving}>
                 Cancel
               </Button>
 
-              <Button
-                type="submit"
-                disabled={saving}
-              >
-                {saving
-                  ? 'Saving...'
-                  : editingRecord
-                    ? 'Update Onboarding'
-                    : 'Start Onboarding'}
+              <Button type="submit" loading={saving}>
+                {editingRecord ? 'Update Onboarding' : 'Start Onboarding'}
               </Button>
             </div>
           </form>
@@ -630,99 +510,68 @@ function Onboarding() {
       )}
 
       {viewRecord && (
-        <Modal
-          title="Onboarding Details"
-          onClose={() => setViewRecord(null)}
-        >
+        <Modal title="Onboarding Details" onClose={() => setViewRecord(null)}>
           <div className="detail-grid">
             <div>
-              <span className="detail-label">
-                Onboarding ID
-              </span>
+              <span className="detail-label">Onboarding ID</span>
               <strong>{viewRecord.onboardingId}</strong>
             </div>
 
             <div>
-              <span className="detail-label">
-                Employee ID
-              </span>
+              <span className="detail-label">Employee ID</span>
               <strong>{viewRecord.employeeId}</strong>
             </div>
 
             <div>
-              <span className="detail-label">
-                Employee Name
-              </span>
+              <span className="detail-label">Employee Name</span>
               <strong>{viewRecord.employeeName}</strong>
             </div>
 
             <div>
-              <span className="detail-label">
-                Department
-              </span>
+              <span className="detail-label">Department</span>
               <strong>{viewRecord.department}</strong>
             </div>
 
             <div>
-              <span className="detail-label">
-                Joining Date
-              </span>
-              <strong>
-                {viewRecord.joiningDate
-                  ? new Date(
-                      viewRecord.joiningDate,
-                    ).toLocaleDateString()
-                  : '—'}
-              </strong>
+              <span className="detail-label">Joining Date</span>
+              <strong>{formatDay(viewRecord.joiningDate)}</strong>
             </div>
 
             <div>
-              <span className="detail-label">
-                Onboarding Type
-              </span>
+              <span className="detail-label">Type</span>
               <strong>{viewRecord.onboardingType}</strong>
             </div>
 
             <div>
-              <span className="detail-label">
-                Status
-              </span>
-
-              <Badge
-                variant={getStatusVariant(
-                  viewRecord.status,
-                )}
-              >
-                {viewRecord.status}
-              </Badge>
+              <span className="detail-label">Status</span>
+              <Badge>{viewRecord.status}</Badge>
             </div>
+
+            {viewRecord.candidateId && (
+              <div>
+                <span className="detail-label">Hired from</span>
+                <strong>Candidate {viewRecord.candidateId}</strong>
+              </div>
+            )}
           </div>
 
-          <div className="onboarding-detail-checklist">
-            <h3>Checklist</h3>
-
-            <div>
-              {viewRecord.documents ? '✓' : '○'} Documents
-            </div>
-
-            <div>
-              {viewRecord.orientation ? '✓' : '○'} Orientation
-            </div>
-
-            <div>
-              {viewRecord.equipment ? '✓' : '○'} Equipment
-            </div>
-
-            <div>
-              {viewRecord.systemAccess ? '✓' : '○'} System Access
-            </div>
-          </div>
+          <ul className="onboarding-view-steps">
+            {checklistOf(viewRecord, today).map((step) => (
+              <li key={step.key}>
+                <span aria-hidden="true">{step.done ? '✓' : '○'}</span>
+                <span>{step.label}</span>
+                <span className="onboarding-step-when">
+                  {step.done
+                    ? step.completedAt ? `done ${formatDay(step.completedAt)}` : 'done'
+                    : `${step.overdue ? 'overdue, ' : ''}due ${formatDay(step.dueKey)}`}
+                </span>
+              </li>
+            ))}
+          </ul>
 
           <div className="detail-notes">
             <span className="detail-label">Notes</span>
-            <p>
-              {viewRecord.notes || 'No notes available.'}
-            </p>
+            <p>{viewRecord.notes || 'No notes available.'}</p>
           </div>
         </Modal>
       )}

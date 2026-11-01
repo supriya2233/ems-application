@@ -1,3 +1,5 @@
+import { apiRequest } from './apiClient'
+
 const API_URL =
   'http://localhost:5000/api/recruitment'
 
@@ -136,3 +138,11 @@ export const deleteRecruitment = async (
 
   return result
 }
+
+/*
+ * Hire a selected candidate. One request creates the employee
+ * (status "Onboarding") and their onboarding checklist, and marks
+ * the candidate as Hired. → { employee, onboarding, candidate }
+ */
+export const hireCandidate = async (id, details) =>
+  (await apiRequest(`/recruitment/${id}/hire`, { method: 'POST', body: details })).data

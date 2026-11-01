@@ -12,6 +12,8 @@ import {
   deleteAsset,
 } from '../services/assetService'
 import { useConfirm, useToast } from '../components/common/feedbackContext'
+import { useLiveRefresh } from '../components/live/liveEventsContext'
+import AssetHandoverModal from '../components/assets/AssetHandoverModal'
 
 const initialForm = {
   assetId: '',
@@ -116,6 +118,10 @@ function Assets() {
   const [viewAsset, setViewAsset] = useState(null)
   const [form, setForm] = useState(initialForm)
   const [saving, setSaving] = useState(false)
+  const [handover, setHandover] = useState(null) // { asset, mode: 'assign' | 'return' }
+
+  // Hand-overs from onboarding or another tab refresh the list.
+  const refreshKey = useLiveRefresh(['assets', 'employees'])
 
   const loadAssets = async () => {
     try {
@@ -133,7 +139,7 @@ function Assets() {
 
   useEffect(() => {
     loadAssets()
-  }, [])
+  }, [refreshKey])
 
   const filteredAssets = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -454,6 +460,22 @@ function Assets() {
 
                     <td>
                       <div className="table-actions">
+                        {asset.employeeId ? (
+                          <Button
+                            size="small"
+                            onClick={() => setHandover({ asset, mode: 'return' })}
+                          >
+                            Return
+                          </Button>
+                        ) : asset.status === 'Available' && (
+                          <Button
+                            size="small"
+                            onClick={() => setHandover({ asset, mode: 'assign' })}
+                          >
+                            Assign
+                          </Button>
+                        )}
+
                         <Button
                           variant="secondary"
                           size="small"
@@ -643,6 +665,20 @@ function Assets() {
         </form>
       </Modal>
 
+      {handover && (
+        <AssetHandoverModal
+          asset={handover.asset}
+          mode={handover.mode}
+          onClose={() => setHandover(null)}
+          onSaved={(updated) => {
+            setAssets((current) =>
+              current.map((asset) => (asset._id === updated._id ? updated : asset)),
+            )
+            setHandover(null)
+          }}
+        />
+      )}
+
       <Modal
         isOpen={Boolean(viewAsset)}
         onClose={() => setViewAsset(null)}
@@ -710,6 +746,31 @@ function Assets() {
                 <strong>Value</strong>
                 <span>{formatValue(viewAsset.value)}</span>
               </div>
+            </div>
+
+            <div className="asset-history">
+              <h3>Assignment history</h3>
+              {(viewAsset.history || []).length === 0 ? (
+                <p className="leave-muted">Not assigned to anyone yet.</p>
+              ) : (
+                <ol className="asset-history-list">
+                  {[...viewAsset.history].reverse().map((entry, index) => (
+                    <li key={`${entry.employeeId}-${entry.assignedAt}-${index}`}>
+                      <strong>{entry.employeeName || entry.employeeId}</strong>
+                      <span>
+                        {formatDate(entry.assignedAt)} – {entry.returnedAt ? formatDate(entry.returnedAt) : 'now'}
+                      </span>
+                      <span className="asset-history-meta">
+                        {[
+                          entry.conditionOut && `Out: ${entry.conditionOut}`,
+                          entry.conditionIn && `Back: ${entry.conditionIn}`,
+                          entry.note,
+                        ].filter(Boolean).join(' · ')}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </div>
 
             {viewAsset.notes && (
