@@ -1,4 +1,7 @@
 import Performance from '../models/Performance.js'
+import { AppError } from '../middleware/errorHandler.js'
+import { assignId } from '../services/idService.js'
+import { getLink, linkEmployee } from '../services/employeeLink.js'
 
 export const getPerformanceRecords = async (req, res) => {
   try {
@@ -43,49 +46,39 @@ export const getPerformanceById = async (req, res) => {
 }
 
 export const createPerformance = async (req, res) => {
-  try {
-    const record = await Performance.create(req.body)
+  const body = { ...req.body }
+  await linkEmployee(body, getLink(Performance))
+  await assignId('performance', Performance, body)
 
-    res.status(201).json({
-      success: true,
-      data: record,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    })
-  }
+  const record = await Performance.create(body)
+
+  res.status(201).json({
+    success: true,
+    message: 'Performance review created successfully',
+    data: record,
+  })
 }
 
 export const updatePerformance = async (req, res) => {
-  try {
-    const record = await Performance.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        returnDocument: 'after',
-        runValidators: true,
-      },
-    )
+  const body = { ...req.body }
+  delete body.reviewId // IDs never change after creation
+  await linkEmployee(body, getLink(Performance), { isUpdate: true })
 
-    if (!record) {
-      return res.status(404).json({
-        success: false,
-        message: 'Performance record not found',
-      })
-    }
+  const record = await Performance.findByIdAndUpdate(
+    req.params.id,
+    body,
+    { returnDocument: 'after', runValidators: true },
+  )
 
-    res.json({
-      success: true,
-      data: record,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    })
+  if (!record) {
+    throw new AppError(404, 'Performance review not found')
   }
+
+  res.json({
+    success: true,
+    message: 'Performance review updated successfully',
+    data: record,
+  })
 }
 
 export const deletePerformance = async (req, res) => {

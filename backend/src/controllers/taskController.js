@@ -1,4 +1,7 @@
 import Task from '../models/Task.js'
+import { AppError } from '../middleware/errorHandler.js'
+import { assignId } from '../services/idService.js'
+import { getLink, linkEmployee } from '../services/employeeLink.js'
 
 export const getTasks = async (req, res) => {
   try {
@@ -45,50 +48,39 @@ export const getTaskById = async (req, res) => {
 }
 
 export const createTask = async (req, res) => {
-  try {
-    const task = await Task.create(req.body)
+  const body = { ...req.body }
+  await linkEmployee(body, getLink(Task))
+  await assignId('tasks', Task, body)
 
-    res.status(201).json({
-      success: true,
-      message: 'Task created successfully',
-      data: task,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to create task',
-      error: error.message,
-    })
-  }
+  const task = await Task.create(body)
+
+  res.status(201).json({
+    success: true,
+    message: 'Task created successfully',
+    data: task,
+  })
 }
 
 export const updateTask = async (req, res) => {
-  try {
-    const task = await Task.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { returnDocument: 'after', runValidators: true },
-    )
+  const body = { ...req.body }
+  delete body.taskId // IDs never change after creation
+  await linkEmployee(body, getLink(Task), { isUpdate: true })
 
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: 'Task not found',
-      })
-    }
+  const task = await Task.findByIdAndUpdate(
+    req.params.id,
+    body,
+    { returnDocument: 'after', runValidators: true },
+  )
 
-    res.status(200).json({
-      success: true,
-      message: 'Task updated successfully',
-      data: task,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to update task',
-      error: error.message,
-    })
+  if (!task) {
+    throw new AppError(404, 'Task not found')
   }
+
+  res.json({
+    success: true,
+    message: 'Task updated successfully',
+    data: task,
+  })
 }
 
 export const deleteTask = async (req, res) => {

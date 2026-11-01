@@ -20,6 +20,15 @@ const taskSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Employee ID of the assignee (e.g. EMP001). Older tasks may
+    // only have the name below; the repair script can fill this in.
+    assigneeId: {
+      type: String,
+      trim: true,
+      default: '',
+      index: true,
+    },
+
     assignee: {
       type: String,
       required: true,

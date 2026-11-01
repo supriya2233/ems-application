@@ -1,4 +1,6 @@
 import Leave from '../models/Leave.js'
+import { AppError } from '../middleware/errorHandler.js'
+import { getLink, linkEmployee } from '../services/employeeLink.js'
 
 export const getLeaves = async (req, res) => {
   try {
@@ -47,52 +49,37 @@ export const getLeaveById = async (req, res) => {
 }
 
 export const createLeave = async (req, res) => {
-  try {
-    const leave =
-      await Leave.create(req.body)
+  const body = { ...req.body }
+  await linkEmployee(body, getLink(Leave))
 
-    res.status(201).json({
-      success: true,
-      message: 'Leave request submitted successfully',
-      data: leave,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to submit leave request',
-      error: error.message,
-    })
-  }
+  const leave = await Leave.create(body)
+
+  res.status(201).json({
+    success: true,
+    message: 'Leave request created successfully',
+    data: leave,
+  })
 }
 
 export const updateLeave = async (req, res) => {
-  try {
-    const leave =
-      await Leave.findByIdAndUpdate(
-        req.params.id,
-        req.body,
-       { returnDocument: 'after', runValidators: true },
-      )
+  const body = { ...req.body }
+  await linkEmployee(body, getLink(Leave), { isUpdate: true })
 
-    if (!leave) {
-      return res.status(404).json({
-        success: false,
-        message: 'Leave request not found',
-      })
-    }
+  const leave = await Leave.findByIdAndUpdate(
+    req.params.id,
+    body,
+    { returnDocument: 'after', runValidators: true },
+  )
 
-    res.status(200).json({
-      success: true,
-      message: 'Leave request updated successfully',
-      data: leave,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to update leave request',
-      error: error.message,
-    })
+  if (!leave) {
+    throw new AppError(404, 'Leave request not found')
   }
+
+  res.json({
+    success: true,
+    message: 'Leave request updated successfully',
+    data: leave,
+  })
 }
 
 export const deleteLeave = async (req, res) => {

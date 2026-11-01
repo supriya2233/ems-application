@@ -1,4 +1,7 @@
 import Onboarding from '../models/Onboarding.js'
+import { AppError } from '../middleware/errorHandler.js'
+import { assignId } from '../services/idService.js'
+import { getLink, linkEmployee } from '../services/employeeLink.js'
 
 export const getOnboardingRecords = async (req, res) => {
   try {
@@ -41,49 +44,39 @@ export const getOnboardingById = async (req, res) => {
 }
 
 export const createOnboarding = async (req, res) => {
-  try {
-    const record = await Onboarding.create(req.body)
+  const body = { ...req.body }
+  await linkEmployee(body, getLink(Onboarding))
+  await assignId('onboarding', Onboarding, body)
 
-    res.status(201).json({
-      success: true,
-      data: record,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    })
-  }
+  const record = await Onboarding.create(body)
+
+  res.status(201).json({
+    success: true,
+    message: 'Onboarding record created successfully',
+    data: record,
+  })
 }
 
 export const updateOnboarding = async (req, res) => {
-  try {
-    const record = await Onboarding.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        returnDocument: 'after',
-        runValidators: true,
-      },
-    )
+  const body = { ...req.body }
+  delete body.onboardingId // IDs never change after creation
+  await linkEmployee(body, getLink(Onboarding), { isUpdate: true })
 
-    if (!record) {
-      return res.status(404).json({
-        success: false,
-        message: 'Onboarding record not found',
-      })
-    }
+  const record = await Onboarding.findByIdAndUpdate(
+    req.params.id,
+    body,
+    { returnDocument: 'after', runValidators: true },
+  )
 
-    res.json({
-      success: true,
-      data: record,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    })
+  if (!record) {
+    throw new AppError(404, 'Onboarding record not found')
   }
+
+  res.json({
+    success: true,
+    message: 'Onboarding record updated successfully',
+    data: record,
+  })
 }
 
 export const deleteOnboarding = async (req, res) => {

@@ -1,4 +1,7 @@
 import Asset from '../models/Asset.js'
+import { AppError } from '../middleware/errorHandler.js'
+import { assignId } from '../services/idService.js'
+import { getLink, linkEmployee } from '../services/employeeLink.js'
 
 export const getAssets = async (req, res) => {
   try {
@@ -65,53 +68,39 @@ export const getAssetById = async (req, res) => {
 }
 
 export const createAsset = async (req, res) => {
-  try {
-    const asset = await Asset.create(req.body)
+  const body = { ...req.body }
+  await linkEmployee(body, getLink(Asset))
+  await assignId('assets', Asset, body)
 
-    res.status(201).json({
-      success: true,
-      message: 'Asset created successfully',
-      data: asset,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to create asset',
-      error: error.message,
-    })
-  }
+  const asset = await Asset.create(body)
+
+  res.status(201).json({
+    success: true,
+    message: 'Asset created successfully',
+    data: asset,
+  })
 }
 
 export const updateAsset = async (req, res) => {
-  try {
-    const asset = await Asset.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        returnDocument: 'after',
-        runValidators: true,
-      },
-    )
+  const body = { ...req.body }
+  delete body.assetId // IDs never change after creation
+  await linkEmployee(body, getLink(Asset), { isUpdate: true })
 
-    if (!asset) {
-      return res.status(404).json({
-        success: false,
-        message: 'Asset not found',
-      })
-    }
+  const asset = await Asset.findByIdAndUpdate(
+    req.params.id,
+    body,
+    { returnDocument: 'after', runValidators: true },
+  )
 
-    res.json({
-      success: true,
-      message: 'Asset updated successfully',
-      data: asset,
-    })
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to update asset',
-      error: error.message,
-    })
+  if (!asset) {
+    throw new AppError(404, 'Asset not found')
   }
+
+  res.json({
+    success: true,
+    message: 'Asset updated successfully',
+    data: asset,
+  })
 }
 
 export const deleteAsset = async (req, res) => {

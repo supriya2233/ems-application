@@ -14,6 +14,7 @@ import onboardingRoutes from './routes/onboardingRoutes.js'
 import performanceRoutes from './routes/performanceRoutes.js'
 import documentRoutes from './routes/documentRoutes.js'
 import assetRoutes from './routes/assetRoutes.js'
+import { errorHandler, notFound } from './middleware/errorHandler.js'
 
 
 dotenv.config()
@@ -45,7 +46,11 @@ app.use('/api/onboarding', onboardingRoutes)
 app.use('/api/performance', performanceRoutes)
 app.use('/api/documents', documentRoutes)
 app.use('/api/assets', assetRoutes)
-app.use('/api/assets', assetRoutes)
+
+// Unknown /api URLs get a JSON 404; any thrown error ends up in
+// errorHandler, which sends a readable message.
+app.use('/api', notFound)
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 5000
 
