@@ -1,6 +1,6 @@
-import { apiRequest } from './apiClient'
+import { apiRequest, API_BASE } from './apiClient'
 
-const API_URL = 'http://localhost:5000/api/assets'
+const API_URL = `${API_BASE}/assets`
 
 export const getAssets = async () => {
   const response = await fetch(API_URL)

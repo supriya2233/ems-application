@@ -7,6 +7,72 @@ import { getOverdueSteps } from '../services/onboardingService.js'
 import Offboarding from '../models/Offboarding.js'
 import { getDocumentAlerts } from '../services/documentService.js'
 import { leavingSoon } from '../services/offboardingService.js'
+import { dayKey, fromDayKey } from '../services/leaveRules.js'
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/*
+ * Today's date on the server's own calendar, as a day key.
+ * (dayKey(new Date()) gives the UTC date, which in India is still
+ * "yesterday" until 05:30 in the morning.)
+ */
+export const localTodayKey = (now = new Date()) =>
+  dayKey(new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())))
+
+/*
+ * "Today at a glance": who is off, who is about to join, who is
+ * about to leave. Short lists (a few names each) for the dashboard.
+ */
+export async function getToday(now = new Date(), { joinWindowDays = 30, limit = 6 } = {}) {
+  const today = fromDayKey(localTodayKey(now))
+  const joinUntil = new Date(today.getTime() + joinWindowDays * DAY_MS)
+
+  const [onLeave, joiners, leavers] = await Promise.all([
+    Leave.find({ status: 'Approved', from: { $lte: today }, to: { $gte: today } })
+      .sort({ to: 1 })
+      .lean(),
+    Employee.find({
+      $or: [{ status: 'Onboarding' }, { joiningDate: { $gte: today, $lte: joinUntil } }],
+    })
+      .sort({ joiningDate: 1 })
+      .limit(limit)
+      .lean(),
+    Offboarding.find({ status: { $ne: 'Completed' } })
+      .sort({ lastWorkingDay: 1 })
+      .limit(limit)
+      .lean(),
+  ])
+
+  return {
+    date: dayKey(today),
+    onLeave: onLeave.map((leave) => ({
+      _id: leave._id,
+      employeeId: leave.employeeId,
+      name: leave.employee,
+      department: leave.department,
+      type: leave.type,
+      from: leave.from,
+      to: leave.to,
+    })),
+    joiners: joiners.map((employee) => ({
+      _id: employee._id,
+      employeeId: employee.employeeId,
+      name: employee.name,
+      department: employee.department,
+      role: employee.role,
+      status: employee.status,
+      joiningDate: employee.joiningDate,
+    })),
+    leavers: leavers.map((record) => ({
+      _id: record._id,
+      employeeId: record.employeeId,
+      name: record.employeeName,
+      department: record.department,
+      reason: record.reason,
+      lastWorkingDay: record.lastWorkingDay,
+    })),
+  }
+}
 
 export const getDashboard = async (req, res) => {
   try {
@@ -55,6 +121,7 @@ export const getDashboard = async (req, res) => {
     const openOffboarding = await Offboarding.countDocuments({ status: { $ne: 'Completed' } })
     const leavingIn14Days = await leavingSoon(14)
     const documentAlerts = await getDocumentAlerts()
+    const today = await getToday()
 
     // Overdue = due date has passed and task is not completed
     const overdueTasks = await Task.countDocuments({
@@ -78,6 +145,17 @@ export const getDashboard = async (req, res) => {
         leave: {
           pending: pendingLeave,
         },
+
+        // Same items as the Approvals inbox, counted.
+        approvals: {
+          waiting:
+            pendingLeave +
+            overdueSteps +
+            documentAlerts.expiry.length +
+            documentAlerts.unverified.length,
+        },
+
+        today,
 
         onboarding: {
           employees: onboardingEmployees,

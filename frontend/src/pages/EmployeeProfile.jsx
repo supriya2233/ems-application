@@ -5,6 +5,7 @@ import {
   CalendarDays,
   ClipboardCheck,
   FileText,
+  History,
   Laptop,
   ListChecks,
   LogOut,
@@ -19,6 +20,7 @@ import Button from '../components/common/Button'
 import LeaveBalances from '../components/leave/LeaveBalances'
 import StartOffboardingModal from '../components/offboarding/StartOffboardingModal'
 import EmptyState from '../components/common/EmptyState'
+import EmployeeTimeline from '../components/activity/EmployeeTimeline'
 import { getEmployeeOverview } from '../services/employeeService'
 import { useLiveEvents } from '../components/live/liveEventsContext'
 import { getAvatarColor, getInitials } from '../utils/avatar'
@@ -456,6 +458,17 @@ function EmployeeProfile() {
             <p className="p360-empty">No onboarding record.</p>
           )}
         </Section>
+
+        <div className="p360-span-all">
+          <Section
+            title="Timeline"
+            icon={History}
+            to={`/activity?employee=${employee.employeeId}`}
+            linkLabel="Full history"
+          >
+            <EmployeeTimeline employeeId={employee.employeeId} />
+          </Section>
+        </div>
       </div>
 
       {showOffboard && (

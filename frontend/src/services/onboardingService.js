@@ -1,6 +1,6 @@
-import { apiRequest } from './apiClient'
+import { apiRequest, API_BASE } from './apiClient'
 
-const API_URL = 'http://localhost:5000/api/onboarding'
+const API_URL = `${API_BASE}/onboarding`
 
 export const getOnboardingRecords = async () => {
   const response = await fetch(API_URL)

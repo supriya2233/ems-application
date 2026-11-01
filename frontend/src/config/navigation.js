@@ -7,6 +7,7 @@ import {
   ChartColumn,
   FileChartColumn,
   FileText,
+  History,
   Inbox,
   Handshake,
   IndianRupee,
@@ -72,6 +73,7 @@ export const navigationGroups = [
   {
     title: 'System',
     items: [
+      { label: 'Activity log', path: '/activity', icon: History },
       { label: 'Reports', path: '/reports', icon: FileChartColumn },
       { label: 'Settings', path: '/settings', icon: Settings },
       { label: 'Help & Support', path: '/help', icon: LifeBuoy },

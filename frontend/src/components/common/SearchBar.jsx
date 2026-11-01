@@ -5,6 +5,7 @@ function SearchBar({
   onChange,
   placeholder = 'Search...',
   label,
+  id, // pass one to use a visible <label htmlFor> instead of aria-label
 }) {
   return (
     <div className="ui-search">
@@ -16,11 +17,12 @@ function SearchBar({
       />
 
       <input
+        id={id}
         type="search"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        aria-label={label || placeholder.replace(/\.+$/, '')}
+        aria-label={id && !label ? undefined : label || placeholder.replace(/[.…]+$/, '')}
       />
 
       {value && (

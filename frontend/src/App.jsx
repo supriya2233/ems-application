@@ -1,172 +1,90 @@
+import { lazy } from 'react'
 import {
   BrowserRouter,
   Navigate,
   Route,
   Routes,
 } from 'react-router-dom'
-import Payroll from './pages/Payroll'
+
 import Layout from './components/layout/Layout'
 import FeedbackProvider from './components/common/FeedbackProvider'
 import LiveEventsProvider from './components/live/LiveEventsProvider'
 
-import Dashboard from './pages/Dashboard'
-import Employees from './pages/Employees'
-import EmployeeProfile from './pages/EmployeeProfile'
-import Departments from './pages/Departments'
-import Attendance from './pages/Attendance'
-import LeaveManagement from './pages/LeaveManagement'
-import Tasks from './pages/Tasks'
-import Performance from './pages/Performance'
-import Recruitment from './pages/Recruitment'
-import Onboarding from './pages/Onboarding'
-import Offboarding from './pages/Offboarding'
-import Assets from './pages/Assets'
-import Documents from './pages/Documents'
-import Analytics from './pages/Analytics'
-import Reports from './pages/Reports'
-import Announcements from './pages/Announcements'
-import Calendar from './pages/Calendar'
-import Notifications from './pages/Notifications'
-import Settings from './pages/Settings'
-import Approvals from './pages/Approvals'
-import Help from './pages/Help'
+/*
+ * Pages are loaded on demand ("code splitting"): each one becomes
+ * its own small file that the browser downloads the first time the
+ * page is opened, instead of one big file up front. <Suspense> in
+ * Layout.jsx shows "Loading page…" during that first download.
+ */
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Approvals = lazy(() => import('./pages/Approvals'))
+const Employees = lazy(() => import('./pages/Employees'))
+const EmployeeProfile = lazy(() => import('./pages/EmployeeProfile'))
+const Departments = lazy(() => import('./pages/Departments'))
+const Tasks = lazy(() => import('./pages/Tasks'))
+const Analytics = lazy(() => import('./pages/Analytics'))
+const Attendance = lazy(() => import('./pages/Attendance'))
+const LeaveManagement = lazy(() => import('./pages/LeaveManagement'))
+const Payroll = lazy(() => import('./pages/Payroll'))
+const Recruitment = lazy(() => import('./pages/Recruitment'))
+const Onboarding = lazy(() => import('./pages/Onboarding'))
+const Offboarding = lazy(() => import('./pages/Offboarding'))
+const Performance = lazy(() => import('./pages/Performance'))
+const Documents = lazy(() => import('./pages/Documents'))
+const Assets = lazy(() => import('./pages/Assets'))
+const Calendar = lazy(() => import('./pages/Calendar'))
+const Announcements = lazy(() => import('./pages/Announcements'))
+const Notifications = lazy(() => import('./pages/Notifications'))
+const Activity = lazy(() => import('./pages/Activity'))
+const Reports = lazy(() => import('./pages/Reports'))
+const Settings = lazy(() => import('./pages/Settings'))
+const Help = lazy(() => import('./pages/Help'))
+
+// path → page. Paths must match config/navigation.js.
+const routes = [
+  ['/dashboard', Dashboard],
+  ['/approvals', Approvals],
+  ['/employees', Employees],
+  ['/employees/:employeeId', EmployeeProfile],
+  ['/departments', Departments],
+  ['/tasks', Tasks],
+  ['/analytics', Analytics],
+  ['/attendance', Attendance],
+  ['/leave', LeaveManagement],
+  ['/payroll', Payroll],
+  ['/recruitment', Recruitment],
+  ['/onboarding', Onboarding],
+  ['/offboarding', Offboarding],
+  ['/performance', Performance],
+  ['/documents', Documents],
+  ['/assets', Assets],
+  ['/calendar', Calendar],
+  ['/announcements', Announcements],
+  ['/notifications', Notifications],
+  ['/activity', Activity],
+  ['/reports', Reports],
+  ['/settings', Settings],
+  ['/help', Help],
+]
 
 function App() {
   return (
     <FeedbackProvider>
-    <LiveEventsProvider>
-    <BrowserRouter>
+      <LiveEventsProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-      <Routes>
+              {routes.map(([path, Page]) => (
+                <Route key={path} path={path} element={<Page />} />
+              ))}
+            </Route>
 
-        <Route element={<Layout />}>
-
-          <Route
-  path="/payroll"
-  element={<Payroll />}
-/>
-
-          <Route
-            path="/"
-            element={<Navigate to="/dashboard" replace />}
-          />
-
-          <Route
-            path="/dashboard"
-            element={<Dashboard />}
-          />
-
-          <Route
-            path="/employees"
-            element={<Employees />}
-          />
-
-          <Route
-            path="/employees/:employeeId"
-            element={<EmployeeProfile />}
-          />
-
-          <Route
-            path="/departments"
-            element={<Departments />}
-          />
-
-          <Route
-            path="/attendance"
-            element={<Attendance />}
-          />
-
-          <Route
-            path="/approvals"
-            element={<Approvals />}
-          />
-
-          <Route
-            path="/leave"
-            element={<LeaveManagement />}
-          />
-
-          <Route
-            path="/tasks"
-            element={<Tasks />}
-          />
-
-          <Route
-            path="/performance"
-            element={<Performance />}
-          />
-
-          <Route
-            path="/recruitment"
-            element={<Recruitment />}
-          />
-
-          <Route
-            path="/onboarding"
-            element={<Onboarding />}
-          />
-
-          <Route
-            path="/offboarding"
-            element={<Offboarding />}
-          />
-
-          <Route
-            path="/assets"
-            element={<Assets />}
-          />
-
-          <Route
-            path="/documents"
-            element={<Documents />}
-          />
-
-          <Route
-            path="/analytics"
-            element={<Analytics />}
-          />
-
-          <Route
-            path="/reports"
-            element={<Reports />}
-          />
-
-          <Route
-            path="/announcements"
-            element={<Announcements />}
-          />
-
-          <Route
-            path="/calendar"
-            element={<Calendar />}
-          />
-
-          <Route
-            path="/notifications"
-            element={<Notifications />}
-          />
-
-          <Route
-            path="/settings"
-            element={<Settings />}
-          />
-
-          <Route
-            path="/help"
-            element={<Help />}
-          />
-
-        </Route>
-
-        <Route
-          path="*"
-          element={<Navigate to="/dashboard" replace />}
-        />
-
-      </Routes>
-
-    </BrowserRouter>
-    </LiveEventsProvider>
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </LiveEventsProvider>
     </FeedbackProvider>
   )
 }

@@ -1,6 +1,6 @@
-import { apiRequest } from './apiClient'
+import { apiRequest, API_BASE } from './apiClient'
 
-const API_URL = 'http://localhost:5000/api/leaves'
+const API_URL = `${API_BASE}/leaves`
 
 export const getLeaves = async () => {
   const response = await fetch(API_URL)

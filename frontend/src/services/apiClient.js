@@ -6,7 +6,9 @@
  * event with that ID, so this tab can skip the "someone changed
  * something" toast for its own action (it already shows "Saved").
  */
-export const API_BASE = 'http://localhost:5000/api'
+// Override with VITE_API_URL (e.g. to point at a demo backend);
+// see the README. Without it, the usual local backend is used.
+export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 export const CLIENT_ID =
   globalThis.crypto?.randomUUID?.() ??

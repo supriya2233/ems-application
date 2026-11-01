@@ -1,6 +1,6 @@
-import { apiRequest } from './apiClient'
+import { apiRequest, API_BASE } from './apiClient'
 
-const API_URL = 'http://localhost:5000/api/payroll'
+const API_URL = `${API_BASE}/payroll`
 
 export const getPayroll = async (params = {}) => {
   const query = new URLSearchParams()

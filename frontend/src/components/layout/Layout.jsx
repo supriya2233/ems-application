@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 
 import Sidebar from './Sidebar'
@@ -55,7 +55,17 @@ function Layout() {
         />
 
         <main className="page-content">
-          <Outlet />
+          {/* Each page's code is downloaded the first time it is
+              opened (see App.jsx); this shows while it arrives. */}
+          <Suspense
+            fallback={
+              <p className="ui-loading page-loading" role="status">
+                Loading page…
+              </p>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
 
       </div>
