@@ -7,7 +7,7 @@
  *   equipment     on the joining day (laptop etc.)
  *   orientation   2 days after joining
  */
-import { dayKey, fromDayKey } from './leaveRules.js'
+import { dayKey, fromDayKey, startOfToday } from './leaveRules.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -41,7 +41,7 @@ export function deriveStatus(record) {
 }
 
 /* Steps not done whose due date is before today. */
-export function overdueSteps(record, today = new Date()) {
+export function overdueSteps(record, today = startOfToday()) {
   const todayKey = dayKey(today)
   const dueDates = stepDueDates(record)
 

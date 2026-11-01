@@ -19,6 +19,7 @@ import {
   updateEmployee,
 } from '../services/employeeService'
 import { getAvatarColor, getInitials } from '../utils/avatar'
+import { todayKey } from '../utils/leave'
 
 const EMPLOYMENT_TYPES = ['Full-time', 'Part-time', 'Contract', 'Intern']
 const EMPLOYEE_STATUSES = ['Active', 'Onboarding', 'On Leave', 'Inactive']
@@ -179,7 +180,7 @@ function Employees() {
           ...form.values,
           initials: getInitials(form.values.name),
           status: 'Active',
-          joiningDate: new Date().toISOString().split('T')[0],
+          joiningDate: todayKey(),
           manager: 'Administrator',
         })
         setEmployees((current) => [created, ...current])

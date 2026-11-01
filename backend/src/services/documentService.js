@@ -1,7 +1,7 @@
 import Document from '../models/Document.js'
 import { publishChange } from './activity.js'
 import { publish } from './events.js'
-import { dayKey, fromDayKey } from './leaveRules.js'
+import { dayKey, fromDayKey, startOfToday } from './leaveRules.js'
 import { EXPIRY_WARNING_DAYS, expiryState } from './documentRules.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -17,7 +17,7 @@ const inDays = (count) => (count === 0 ? 'today' : count === 1 ? 'tomorrow' : `i
  *   2. documents expiring within 30 days get one reminder
  * Returns how many documents it acted on.
  */
-export async function checkDocumentExpiry(today = new Date()) {
+export async function checkDocumentExpiry(today = startOfToday()) {
   const todayStart = fromDayKey(dayKey(today))
   const warnUntil = new Date(todayStart.getTime() + EXPIRY_WARNING_DAYS * DAY_MS)
   let count = 0
@@ -81,7 +81,7 @@ export async function checkDocumentExpiry(today = new Date()) {
  * Documents that need someone (Approvals inbox and dashboard):
  *   expired / expiring within 30 days, and unverified ones.
  */
-export async function getDocumentAlerts(today = new Date()) {
+export async function getDocumentAlerts(today = startOfToday()) {
   const warnUntil = new Date(fromDayKey(dayKey(today)).getTime() + EXPIRY_WARNING_DAYS * DAY_MS)
 
   const [dated, unverified] = await Promise.all([

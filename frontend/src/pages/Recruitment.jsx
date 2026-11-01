@@ -21,7 +21,7 @@ import {
 } from '../services/recruitmentService'
 import { useConfirm, useToast } from '../components/common/feedbackContext'
 import { useLiveRefresh } from '../components/live/liveEventsContext'
-import { formatDay } from '../utils/leave'
+import { formatDay, todayKey } from '../utils/leave'
 
 const initialForm = {
   candidateId: '',
@@ -153,7 +153,7 @@ function Recruitment() {
     setEditingCandidate(null)
     setForm({
       ...initialForm,
-      appliedDate: new Date().toISOString().split('T')[0],
+      appliedDate: todayKey(),
     })
     setShowModal(true)
   }

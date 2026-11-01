@@ -5,6 +5,7 @@ import { publishChange } from './activity.js'
 import { assignAsset } from './assetService.js'
 import { publish } from './events.js'
 import { applyChecklist, overdueSteps, STEP_KEYS, stepLabel } from './onboardingRules.js'
+import { startOfToday } from './leaveRules.js'
 
 const formatDay = (value) =>
   new Date(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })
@@ -119,7 +120,7 @@ export async function setStep(id, step, { done = true, assetId } = {}) {
 }
 
 /* Every overdue step of unfinished onboarding (for the Approvals inbox). */
-export async function getOverdueSteps(today = new Date()) {
+export async function getOverdueSteps(today = startOfToday()) {
   const records = await Onboarding.find({ status: { $ne: 'Completed' } }).lean()
 
   return records.flatMap((record) =>
@@ -131,7 +132,7 @@ export async function getOverdueSteps(today = new Date()) {
  * Sends one "overdue" notification per step (remembered in
  * overdueNotified). Runs with the other scheduled jobs.
  */
-export async function notifyOverdueSteps(today = new Date()) {
+export async function notifyOverdueSteps(today = startOfToday()) {
   const overdue = await getOverdueSteps(today)
   let sent = 0
 

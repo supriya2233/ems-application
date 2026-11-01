@@ -6,7 +6,7 @@ import { publishChange } from './activity.js'
 import { returnAsset } from './assetService.js'
 import { publish } from './events.js'
 import { assignId } from './idService.js'
-import { dayKey, fromDayKey } from './leaveRules.js'
+import { dayKey, fromDayKey, startOfToday } from './leaveRules.js'
 import {
   buildChecklist,
   deriveOffboardingStatus,
@@ -220,7 +220,7 @@ async function completeOffboarding(record) {
 }
 
 /* Unfinished offboardings whose last day is close (dashboard). */
-export async function leavingSoon(days = 14, today = new Date()) {
+export async function leavingSoon(days = 14, today = startOfToday()) {
   const start = fromDayKey(dayKey(today))
   const end = new Date(start.getTime() + days * 24 * 60 * 60 * 1000)
   return Offboarding.countDocuments({ status: { $ne: 'Completed' }, lastWorkingDay: { $gte: start, $lte: end } })

@@ -9,7 +9,7 @@ import {
   prepareLeave,
   previewLeave,
 } from '../services/leaveService.js'
-import { INACTIVE_STATUSES } from '../services/leaveRules.js'
+import { INACTIVE_STATUSES, startOfToday } from '../services/leaveRules.js'
 
 export const getLeaves = async (req, res) => {
   try {
@@ -157,7 +157,7 @@ export const previewLeaveHandler = async (req, res) => {
 
 // GET /api/leaves/balances/:employeeId?year=2026
 export const getLeaveBalances = async (req, res) => {
-  const year = Number(req.query.year) || new Date().getUTCFullYear()
+  const year = Number(req.query.year) || startOfToday().getUTCFullYear()
   const data = await getBalances(req.params.employeeId, year)
 
   res.json({ success: true, year, data })

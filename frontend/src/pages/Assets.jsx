@@ -14,6 +14,7 @@ import {
 import { useConfirm, useToast } from '../components/common/feedbackContext'
 import { useLiveRefresh } from '../components/live/liveEventsContext'
 import AssetHandoverModal from '../components/assets/AssetHandoverModal'
+import { todayKey } from '../utils/leave'
 
 const initialForm = {
   assetId: '',
@@ -222,7 +223,7 @@ function Assets() {
             : current.status,
       assignedDate:
         employee && !current.assignedDate
-          ? new Date().toISOString().split('T')[0]
+          ? todayKey()
           : current.assignedDate,
     }))
   }

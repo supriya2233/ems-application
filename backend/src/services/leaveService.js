@@ -11,6 +11,7 @@ import {
   describeCoverage,
   findOverlap,
   fromDayKey,
+  startOfToday,
   workingDates,
 } from './leaveRules.js'
 import { getSettings } from './settingsService.js'
@@ -66,7 +67,7 @@ export async function prepareLeave(body, current = null) {
 }
 
 /* Leave balances for one employee and year. */
-export async function getBalances(employeeId, year = new Date().getUTCFullYear(), { excludeId } = {}) {
+export async function getBalances(employeeId, year = startOfToday().getUTCFullYear(), { excludeId } = {}) {
   const [settings, leaves] = await Promise.all([
     getSettings(),
     Leave.find({ employeeId }).lean(),
@@ -185,7 +186,7 @@ export async function syncLeaveAttendance(leave, { deleted = false } = {}) {
  * Pass an employeeId to check one person, or nothing for everyone.
  * Returns the number of employees whose status changed.
  */
-export async function syncEmployeeLeaveStatus({ employeeId, today = new Date() } = {}) {
+export async function syncEmployeeLeaveStatus({ employeeId, today = startOfToday() } = {}) {
   const todayDate = fromDayKey(dayKey(today))
 
   const filter = { status: { $in: ['Active', 'On Leave'] } }
