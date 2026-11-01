@@ -27,6 +27,7 @@ import Announcements from './pages/Announcements'
 import Calendar from './pages/Calendar'
 import Notifications from './pages/Notifications'
 import Settings from './pages/Settings'
+import Approvals from './pages/Approvals'
 import Help from './pages/Help'
 
 function App() {
@@ -72,6 +73,11 @@ function App() {
           <Route
             path="/attendance"
             element={<Attendance />}
+          />
+
+          <Route
+            path="/approvals"
+            element={<Approvals />}
           />
 
           <Route

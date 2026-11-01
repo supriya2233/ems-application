@@ -8,6 +8,8 @@ import Performance from '../models/Performance.js'
 import Document from '../models/Document.js'
 import Asset from '../models/Asset.js'
 import Task from '../models/Task.js'
+import { calculateBalances } from './leaveRules.js'
+import { getSettings } from './settingsService.js'
 
 /*
  * Employee 360°: gather one person's records from every module.
@@ -54,7 +56,7 @@ export async function getEmployeeOverview(idOrEmployeeId) {
   const { employeeId } = employee
   const newestFirst = { createdAt: -1 }
 
-  const [attendance, leaves, payroll, onboarding, reviews, documents, assets, tasks] =
+  const [attendance, leaves, payroll, onboarding, reviews, documents, assets, tasks, settings] =
     await Promise.all([
       Attendance.find({ employeeId }).sort({ date: -1 }).limit(30).lean(),
       Leave.find({ employeeId }).sort({ from: -1 }).lean(),
@@ -69,6 +71,7 @@ export async function getEmployeeOverview(idOrEmployeeId) {
       })
         .sort({ dueDate: 1 })
         .lean(),
+      getSettings(),
     ])
 
   return {
@@ -80,6 +83,7 @@ export async function getEmployeeOverview(idOrEmployeeId) {
     leave: {
       records: leaves,
       summary: summariseLeave(leaves),
+      balances: calculateBalances(leaves, settings.leaveAllowances, new Date().getUTCFullYear()),
     },
     payroll,
     onboarding,

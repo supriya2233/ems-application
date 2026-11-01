@@ -16,6 +16,7 @@ const statusOptions = [
   'Late',
   'Absent',
   'WFH',
+  'On Leave', // filled in automatically from approved leave
 ]
 
 function Attendance() {
@@ -243,6 +244,10 @@ function Attendance() {
 
     if (status === 'Absent') {
       return 'danger'
+    }
+
+    if (status === 'On Leave') {
+      return 'info'
     }
 
     return 'neutral'

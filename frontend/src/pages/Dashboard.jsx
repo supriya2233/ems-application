@@ -117,6 +117,7 @@ function Dashboard() {
   const employees = dashboard?.employees || {}
   const departments = dashboard?.departments || {}
   const tasks = dashboard?.tasks || {}
+  const pendingLeave = dashboard?.leave?.pending || 0
 
   const totalEmployees = employees.total || 0
   const activeEmployees = employees.active || 0
@@ -134,6 +135,10 @@ function Dashboard() {
 
   // Only things that need action make it into the callout.
   const attentionItems = [
+    pendingLeave > 0 && {
+      label: `${plural(pendingLeave, 'leave request')} to review`,
+      path: '/approvals',
+    },
     overdueTasks > 0 && {
       label: `${plural(overdueTasks, 'overdue task')}`,
       path: '/tasks',

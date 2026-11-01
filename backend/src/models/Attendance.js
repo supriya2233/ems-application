@@ -32,6 +32,7 @@ const attendanceSchema = new mongoose.Schema(
         'Late',
         'Absent',
         'WFH',
+        'On Leave', // filled in automatically from approved leave
       ],
       required: true,
     },
@@ -52,6 +53,14 @@ const attendanceSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: '',
+    },
+
+    // Set when this entry was created from an approved leave, so it
+    // can be removed again if the leave is rejected or cancelled.
+    leaveId: {
+      type: String,
+      default: '',
+      index: true,
     },
   },
   {

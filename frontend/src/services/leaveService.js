@@ -1,3 +1,5 @@
+import { apiRequest } from './apiClient'
+
 const API_URL = 'http://localhost:5000/api/leaves'
 
 export const getLeaves = async () => {
@@ -82,3 +84,16 @@ export const deleteLeave = async (id) => {
 
   return result
 }
+
+// Working days, balance and warnings for a request being filled in.
+// Nothing is saved. → { days, balance, warnings, error }
+export const previewLeave = async (request) =>
+  (await apiRequest('/leaves/preview', { method: 'POST', body: request })).data
+
+// → [{ type, allowance, used, pending, remaining }]
+export const getLeaveBalances = async (employeeId, year = new Date().getFullYear()) =>
+  (await apiRequest(`/leaves/balances/${encodeURIComponent(employeeId)}?year=${year}`)).data
+
+// → { teamSize, othersOff, message }
+export const getLeaveCoverage = async (id) =>
+  (await apiRequest(`/leaves/${id}/coverage`)).data

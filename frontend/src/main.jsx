@@ -12,6 +12,7 @@ import './styles/components.css'
 import './styles/dashboard.css'
 import './styles/profile.css'
 import './styles/notifications.css'
+import './styles/leave.css'
 
 // Tag API requests with this tab's ID (see services/apiClient.js).
 installClientIdHeader()

@@ -7,6 +7,7 @@ import {
   ChartColumn,
   FileChartColumn,
   FileText,
+  Inbox,
   Handshake,
   IndianRupee,
   Laptop,
@@ -33,6 +34,7 @@ export const navigationGroups = [
     title: 'Workspace',
     items: [
       { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+      { label: 'Approvals', path: '/approvals', icon: Inbox },
       { label: 'Employees', path: '/employees', icon: Users },
       { label: 'Departments', path: '/departments', icon: Building2 },
       { label: 'Tasks', path: '/tasks', icon: ListChecks },

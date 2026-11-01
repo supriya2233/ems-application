@@ -1,6 +1,7 @@
 import Employee from '../models/Employee.js'
 import Department from '../models/Department.js'
 import Task from '../models/Task.js'
+import Leave from '../models/Leave.js'
 
 export const getDashboard = async (req, res) => {
   try {
@@ -37,6 +38,9 @@ export const getDashboard = async (req, res) => {
       status: 'Completed',
     })
 
+    // Leave requests waiting for approval
+    const pendingLeave = await Leave.countDocuments({ status: 'Pending' })
+
     // Overdue = due date has passed and task is not completed
     const overdueTasks = await Task.countDocuments({
       dueDate: { $lt: new Date() },
@@ -54,6 +58,10 @@ export const getDashboard = async (req, res) => {
 
         departments: {
           total: totalDepartments,
+        },
+
+        leave: {
+          pending: pendingLeave,
         },
 
         tasks: {

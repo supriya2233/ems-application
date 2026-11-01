@@ -101,15 +101,29 @@ const MODULES = {
     label: (doc) => `${doc.employee}’s ${doc.type} leave`,
     link: () => '/leave',
     employeeId: (doc) => doc.employeeId,
-    created: (doc) => ({
-      action: 'requested',
-      summary: `${doc.employee} requested ${plural(doc.days, 'day')} of ${doc.type} leave`,
-      notify: {
-        title: 'Leave request to review',
-        message: `${doc.employee} asked for ${plural(doc.days, 'day')} of ${doc.type} leave (${formatDay(doc.from)} – ${formatDay(doc.to)}).`,
-        tone: 'warning',
-      },
-    }),
+    created: (doc) => {
+      const dates = `${formatDay(doc.from)} – ${formatDay(doc.to)}`
+      const amount = `${plural(doc.days, 'day')} of ${doc.type} leave`
+
+      // Leave entered as already approved (e.g. recorded afterwards)
+      if (doc.status === 'Approved') {
+        return {
+          action: 'approved',
+          summary: `Recorded ${amount} for ${doc.employee} as approved (${dates})`,
+          notify: { title: 'Leave approved', message: `${doc.employee}’s ${amount} was recorded as approved.`, tone: 'success' },
+        }
+      }
+
+      return {
+        action: 'requested',
+        summary: `${doc.employee} requested ${amount}`,
+        notify: {
+          title: 'Leave request to review',
+          message: `${doc.employee} asked for ${amount} (${dates}).`,
+          tone: 'warning',
+        },
+      }
+    },
     updated: (before, after) => {
       if (!changed(before, after, 'status')) return null
       const verb = after.status.toLowerCase()

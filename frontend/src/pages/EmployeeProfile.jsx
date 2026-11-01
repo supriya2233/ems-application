@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 
 import Badge from '../components/common/Badge'
+import LeaveBalances from '../components/leave/LeaveBalances'
 import EmptyState from '../components/common/EmptyState'
 import { getEmployeeOverview } from '../services/employeeService'
 import { useLiveEvents } from '../components/live/liveEventsContext'
@@ -278,6 +279,11 @@ function EmployeeProfile() {
         </Section>
 
         <Section title="Leave" icon={CalendarDays} to="/leave" linkLabel="Leave management" count={leave.records.length}>
+          {leave.balances && (
+            <div className="p360-balances">
+              <LeaveBalances balances={leave.balances} />
+            </div>
+          )}
           {Object.keys(leave.summary.byType).length > 0 && (
             <p className="p360-note">
               Approved:{' '}
