@@ -27,6 +27,7 @@ const leaveSchema = new mongoose.Schema(
         'Casual',
         'Medical',
         'Other',
+        'Unpaid', // no allowance; payroll deducts it (Phase 6)
       ],
       required: true,
     },
@@ -45,6 +46,7 @@ const leaveSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 1,
+      // Working days, always counted by the server (services/leaveService.js)
     },
 
     reason: {
@@ -59,6 +61,7 @@ const leaveSchema = new mongoose.Schema(
         'Pending',
         'Approved',
         'Rejected',
+        'Cancelled', // approved leave that was called off
       ],
       default: 'Pending',
     },
