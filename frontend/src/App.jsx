@@ -19,6 +19,7 @@ import Tasks from './pages/Tasks'
 import Performance from './pages/Performance'
 import Recruitment from './pages/Recruitment'
 import Onboarding from './pages/Onboarding'
+import Offboarding from './pages/Offboarding'
 import Assets from './pages/Assets'
 import Documents from './pages/Documents'
 import Analytics from './pages/Analytics'
@@ -103,6 +104,11 @@ function App() {
           <Route
             path="/onboarding"
             element={<Onboarding />}
+          />
+
+          <Route
+            path="/offboarding"
+            element={<Offboarding />}
           />
 
           <Route

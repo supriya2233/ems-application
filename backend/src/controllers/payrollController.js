@@ -2,6 +2,7 @@ import Payroll from '../models/Payroll.js'
 import { AppError } from '../middleware/errorHandler.js'
 import { getLink, linkEmployee } from '../services/employeeLink.js'
 import { publishChange } from '../services/activity.js'
+import { generatePayroll, getPayrollMonths, previewPayroll, recalculatePayroll } from '../services/payrollService.js'
 
 export const getPayroll = async (req, res) => {
   try {
@@ -138,6 +139,7 @@ export const calculateNet = ({ basic, allowances, deductions }) =>
 export const updatePayroll = async (req, res) => {
   const body = { ...req.body }
   delete body.net
+  delete body.breakdown // worked out by the server (Generate / Recalculate)
   await linkEmployee(body, getLink(Payroll), { isUpdate: true })
 
   const before = await Payroll.findById(req.params.id).lean()
@@ -196,4 +198,35 @@ export const deletePayroll = async (
       error: error.message,
     })
   }
+}
+
+/* GET /api/payroll/months → ["December 2026", "November 2026", …] */
+export const getPayrollMonthsHandler = async (req, res) => {
+  res.json({ success: true, data: await getPayrollMonths() })
+}
+
+/*
+ * POST /api/payroll/generate { month, preview, salaries }
+ *   preview: true → the calculation for everyone, nothing saved
+ *   otherwise     → Draft records for everyone who is ready
+ */
+export const generatePayrollHandler = async (req, res) => {
+  const { month, preview = false, salaries = {} } = req.body || {}
+
+  if (preview) {
+    res.json({ success: true, data: await previewPayroll(month, { salaries }) })
+    return
+  }
+
+  const result = await generatePayroll(month, { salaries })
+  res.status(201).json({
+    success: true,
+    message: `Generated ${result.created.length} payroll record(s) for ${result.month}`,
+    data: result,
+  })
+}
+
+/* POST /api/payroll/:id/recalculate */
+export const recalculatePayrollHandler = async (req, res) => {
+  res.json({ success: true, message: 'Payroll recalculated', data: await recalculatePayroll(req.params.id) })
 }

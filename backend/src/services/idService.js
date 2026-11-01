@@ -18,6 +18,7 @@ export const ID_FORMATS = {
   onboarding: { prefix: 'ONB', field: 'onboardingId', model: 'Onboarding' },
   performance: { prefix: 'REV', field: 'reviewId', model: 'Performance' },
   recruitment: { prefix: 'CAN', field: 'candidateId', model: 'Recruitment' },
+  offboarding: { prefix: 'OFF', field: 'offboardingId', model: 'Offboarding' },
 }
 
 /* formatId('EMP', 7) → "EMP007" (at least 3 digits) */

@@ -3,6 +3,7 @@ import { AppError } from '../middleware/errorHandler.js'
 import { assignId } from '../services/idService.js'
 import { getLink, linkEmployee } from '../services/employeeLink.js'
 import { publishChange } from '../services/activity.js'
+import { applyExpiry } from '../services/documentRules.js'
 
 export const getDocuments = async (req, res) => {
   try {
@@ -50,6 +51,8 @@ export const createDocument = async (req, res) => {
   const body = { ...req.body }
   await linkEmployee(body, getLink(Document))
   await assignId('documents', Document, body)
+  delete body.expiryReminderSentAt
+  applyExpiry(body) // an expiry date in the past means "Expired"
 
   const document = await Document.create(body)
   publishChange('documents', 'created', null, document)
@@ -66,7 +69,10 @@ export const updateDocument = async (req, res) => {
   delete body.documentId // IDs never change after creation
   await linkEmployee(body, getLink(Document), { isUpdate: true })
 
+  delete body.expiryReminderSentAt
   const before = await Document.findById(req.params.id).lean()
+  if (!before) throw new AppError(404, 'Document not found')
+  applyExpiry(body, before) // renewing an expired document makes it Active again
 
   const document = await Document.findByIdAndUpdate(
     req.params.id,

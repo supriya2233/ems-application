@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   CalendarDays,
@@ -7,6 +7,7 @@ import {
   FileText,
   Laptop,
   ListChecks,
+  LogOut,
   Mail,
   Phone,
   Star,
@@ -14,7 +15,9 @@ import {
 } from 'lucide-react'
 
 import Badge from '../components/common/Badge'
+import Button from '../components/common/Button'
 import LeaveBalances from '../components/leave/LeaveBalances'
+import StartOffboardingModal from '../components/offboarding/StartOffboardingModal'
 import EmptyState from '../components/common/EmptyState'
 import { getEmployeeOverview } from '../services/employeeService'
 import { useLiveEvents } from '../components/live/liveEventsContext'
@@ -94,6 +97,8 @@ function EmployeeProfile() {
   const [overview, setOverview] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showOffboard, setShowOffboard] = useState(false)
+  const navigate = useNavigate()
 
   // Something about this person changed (here or in another tab):
   // fetch the overview again without showing the loading state.
@@ -176,11 +181,16 @@ function EmployeeProfile() {
     leave,
     payroll,
     onboarding,
+    offboarding = [],
     reviews,
     documents,
     assets,
     tasks,
   } = overview
+
+  // Leaving: an unfinished offboarding, or the finished one of a leaver.
+  const openOffboarding = offboarding.find((record) => record.status !== 'Completed')
+  const pastOffboarding = !openOffboarding && employee.status === 'Inactive' ? offboarding[0] : null
 
   const openTasks = tasks.filter((task) => task.status !== 'Completed')
   const latestPay = payroll[0]
@@ -238,6 +248,35 @@ function EmployeeProfile() {
               </li>
             )}
           </ul>
+
+          {openOffboarding ? (
+            <p className="p360-leaving">
+              <LogOut size={14} aria-hidden="true" />
+              <span>
+                Leaving on <strong>{formatDate(openOffboarding.lastWorkingDay)}</strong> ({openOffboarding.reason}) ·{' '}
+                {openOffboarding.items.filter((item) => item.done).length} of {openOffboarding.items.length} offboarding items done ·{' '}
+                <Link to={`/offboarding?focus=${openOffboarding._id}`}>Open checklist</Link>
+              </span>
+            </p>
+          ) : pastOffboarding ? (
+            <p className="p360-leaving p360-left">
+              <LogOut size={14} aria-hidden="true" />
+              <span>Left on {formatDate(pastOffboarding.lastWorkingDay)} ({pastOffboarding.reason})</span>
+            </p>
+          ) : (
+            employee.status !== 'Inactive' && (
+              <div className="p360-header-actions">
+                <Button
+                  size="small"
+                  variant="secondary"
+                  icon={<LogOut size={14} aria-hidden="true" />}
+                  onClick={() => setShowOffboard(true)}
+                >
+                  Start offboarding
+                </Button>
+              </div>
+            )
+          )}
         </div>
 
         <dl className="p360-details">
@@ -418,6 +457,14 @@ function EmployeeProfile() {
           )}
         </Section>
       </div>
+
+      {showOffboard && (
+        <StartOffboardingModal
+          employee={employee}
+          onClose={() => setShowOffboard(false)}
+          onStarted={(record) => navigate(`/offboarding?focus=${record._id}`)}
+        />
+      )}
     </div>
   )
 }

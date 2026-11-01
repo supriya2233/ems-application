@@ -70,6 +70,12 @@ const documentSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+
+    // When the "expires soon" notification was sent (once per expiry date)
+    expiryReminderSentAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true },
 )

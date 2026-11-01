@@ -1,3 +1,5 @@
+import { apiRequest } from './apiClient'
+
 const API_URL = 'http://localhost:5000/api/payroll'
 
 export const getPayroll = async (params = {}) => {
@@ -138,3 +140,21 @@ export const deletePayroll = async (
 
   return result
 }
+/* Months for the picker, newest first (worked out by the server). */
+export const getPayrollMonths = async () => (await apiRequest('/payroll/months')).data
+
+/*
+ * The whole month's calculation, nothing saved:
+ * { month, workingDays, rows: [{ employeeId, state, net, breakdown, … }], totals }
+ * salaries: { EMP002: { basic, allowances } } for people with no earlier payroll
+ */
+export const previewPayroll = async (month, salaries = {}) =>
+  (await apiRequest('/payroll/generate', { method: 'POST', body: { month, preview: true, salaries } })).data
+
+/* Creates Draft records for everyone who is ready → { created, … } */
+export const generatePayroll = async (month, salaries = {}) =>
+  (await apiRequest('/payroll/generate', { method: 'POST', body: { month, salaries } })).data
+
+/* Re-reads leave and attendance for one (not yet processed) record. */
+export const recalculatePayroll = async (id) =>
+  (await apiRequest(`/payroll/${id}/recalculate`, { method: 'POST' })).data
