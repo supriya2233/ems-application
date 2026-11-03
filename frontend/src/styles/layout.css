@@ -1,24 +1,20 @@
 /* =========================================================
-   APP SHELL — Focus rail layout
-   Sidebar (rail / drawer), header, page content area.
+   APP SHELL — sidebar, header, page area  (design system v2 §5)
 
-   Desktop (>= 1024px):
-     A 64px icon rail. Hovering it, or tabbing into it with the
-     keyboard, slides the labels out over the content (the
-     content does not move).
-   Tablet & mobile (< 1024px):
-     The rail is hidden. The menu button in the header opens a
-     full-width drawer with labels.
-
-   Values come from styles/tokens.css. The rail and drawer
-   widths are layout decisions the DesignMD does not define.
+   Desktop (≥ 1280px)  sidebar open with labels (248px). The footer
+                       button folds it to a 72px rail (.app-rail),
+                       which still expands on hover.
+   Laptop (1024–1279)  72px rail that expands on hover / keyboard
+                       focus, sliding over the content.
+   Tablet & mobile     hidden; the header's menu button opens a drawer.
 ========================================================= */
 
 :root {
-  --rail-width: 64px;
+  --rail-width: 72px;
   --rail-expanded-width: 248px;
-  --drawer-width: 280px;
-  --header-height: 64px; /* §4 Top Navigation Bar */
+  --drawer-width: 288px;
+  --header-height: 64px;
+  --content-max-width: 1360px;
 }
 
 
@@ -28,17 +24,18 @@
 
 .app {
   min-height: 100vh;
-  background: var(--color-surface);
+  background: var(--color-canvas);
 }
 
 .main-wrapper {
   min-height: 100vh;
   margin-left: var(--rail-width);
+  transition: margin-left var(--duration-base) var(--ease-out);
 }
 
 
 /* =========================================================
-   SIDEBAR — shared by rail and drawer
+   SIDEBAR — shared by rail, pinned and drawer
 ========================================================= */
 
 .sidebar {
@@ -54,7 +51,7 @@
   width: var(--rail-width);
   overflow: hidden;
 
-  background: var(--color-light-gray);
+  background: var(--color-surface);
   border-right: var(--border-width-thin) solid var(--color-border);
   color: var(--color-text);
 }
@@ -69,9 +66,7 @@
   gap: var(--space-3);
 
   height: var(--header-height);
-  padding: 0 var(--space-4);
-
-  border-bottom: var(--border-width-thin) solid var(--color-border);
+  padding: 0 18px;
 }
 
 .brand-mark {
@@ -81,15 +76,17 @@
   align-items: center;
   justify-content: center;
 
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
 
-  background: var(--color-primary);
+  background: var(--gradient-brand);
   color: var(--color-on-primary);
   border-radius: var(--radius-md);
+  box-shadow: 0 6px 14px -6px rgba(66, 84, 230, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-bold);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .brand-text {
@@ -100,9 +97,10 @@
 }
 
 .brand-text strong {
-  font-size: var(--font-size-body-sm);
-  line-height: var(--line-height-body-sm);
+  font-size: 15px;
+  line-height: 20px;
   font-weight: var(--font-weight-bold);
+  letter-spacing: -0.01em;
 }
 
 .brand-text small {
@@ -121,14 +119,14 @@
   flex: 1;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-3);
 
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-input) transparent;
 }
 
 .navigation-group + .navigation-group {
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .navigation-label {
@@ -139,20 +137,22 @@
 
   height: 28px;
   margin: 0;
-  padding: 0 10px;
+  padding: 0 12px;
 
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-medium);
+  color: var(--color-medium-gray);
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
-/* In the collapsed rail the group title is hidden, so a short
-   hairline marks where each group starts. */
+/* In the folded rail the group title is hidden; a short hairline
+   marks where each group starts. */
 .navigation-label::before {
   content: "";
   position: absolute;
-  left: 10px;
+  left: 15px;
   top: 50%;
 
   width: 18px;
@@ -160,7 +160,7 @@
 
   background: var(--color-border-input);
   opacity: 0;
-  transition: opacity 120ms ease;
+  transition: opacity var(--duration-fast) ease;
 }
 
 .nav-item {
@@ -170,9 +170,9 @@
   align-items: center;
   gap: var(--space-3);
 
-  min-height: 40px;
+  min-height: 38px;
   margin-bottom: 2px;
-  padding: 0 10px;
+  padding: 0 12px;
 
   border-radius: var(--radius-md);
   color: var(--color-text-secondary);
@@ -183,18 +183,18 @@
   text-decoration: none;
 
   transition:
-    background-color 120ms ease,
-    color 120ms ease;
+    background-color var(--duration-fast) ease,
+    color var(--duration-fast) ease;
 }
 
 .nav-item:hover {
-  background: var(--color-hover);
+  background: var(--color-surface-muted);
   color: var(--color-text);
 }
 
 .nav-item:focus-visible {
-  outline: var(--border-width-medium) solid var(--color-primary);
-  outline-offset: -2px;
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .nav-item-active,
@@ -203,17 +203,21 @@
   color: var(--color-on-primary-soft);
 }
 
-/* Blue marker on the rail's outer edge for the current page */
+.nav-item-active .nav-icon {
+  color: var(--color-primary);
+}
+
+/* Gradient marker on the sidebar's edge for the current page */
 .nav-item-active::before {
   content: "";
   position: absolute;
   left: calc(var(--space-3) * -1);
-  top: 10px;
-  bottom: 10px;
+  top: 9px;
+  bottom: 9px;
 
   width: 3px;
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  background: var(--color-primary);
+  border-radius: 0 3px 3px 0;
+  background: var(--gradient-brand);
 }
 
 .nav-icon {
@@ -225,6 +229,49 @@
 .nav-label {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Footer: fold / unfold -------------------------------- */
+
+.sidebar-footer {
+  flex-shrink: 0;
+  display: none;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-top: var(--border-width-thin) solid var(--color-border);
+}
+
+.sidebar-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+
+  width: 100%;
+  min-height: 36px;
+  padding: 0 12px;
+
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  text-align: left;
+}
+
+.sidebar-toggle:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.sidebar-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.sidebar-toggle svg {
+  flex-shrink: 0;
 }
 
 
@@ -245,8 +292,16 @@
   height: var(--header-height);
   padding: 0 var(--space-8);
 
-  background: var(--color-surface);
-  border-bottom: var(--border-width-thin) solid var(--color-border);
+  background: color-mix(in srgb, var(--color-canvas) 82%, transparent);
+  backdrop-filter: saturate(160%) blur(12px);
+  -webkit-backdrop-filter: saturate(160%) blur(12px);
+  border-bottom: var(--border-width-thin) solid transparent;
+  transition: border-color var(--duration-base) ease;
+}
+
+/* A hairline appears once the page has scrolled under it. */
+.header-scrolled {
+  border-bottom-color: var(--color-border);
 }
 
 .header-left,
@@ -302,7 +357,7 @@
 
 .header-breadcrumb li + li::before {
   content: "/";
-  color: var(--color-text-placeholder);
+  color: var(--color-border-strong);
 }
 
 .header-breadcrumb a {
@@ -315,7 +370,7 @@
 
 .header-breadcrumb [aria-current="page"] {
   color: var(--color-text);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
 }
 
 /* Date & user ------------------------------------------- */
@@ -335,7 +390,7 @@
 .header-user {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 10px;
 }
 
 .header-avatar {
@@ -343,12 +398,13 @@
   align-items: center;
   justify-content: center;
 
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
 
-  background: var(--color-primary-soft);
-  color: var(--color-on-primary-soft);
+  background: var(--gradient-brand);
+  color: var(--color-on-primary);
   border-radius: var(--radius-round);
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-border);
 
   font-size: var(--font-size-caption);
   font-weight: var(--font-weight-bold);
@@ -362,7 +418,7 @@
 .header-user-name {
   font-size: var(--font-size-body-sm);
   line-height: var(--line-height-body-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
 }
 
 .header-user-role {
@@ -377,36 +433,58 @@
 ========================================================= */
 
 .page-content {
-  padding: var(--space-8);
+  width: 100%;
+  max-width: calc(var(--content-max-width) + 2 * var(--space-8));
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-8) var(--space-16);
+}
+
+/* Each page fades in softly when it opens. */
+.page-content > * {
+  animation: page-enter 240ms var(--ease-out) both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 
 /* =========================================================
-   DESKTOP — collapsible rail (>= 1024px)
+   LAPTOP & UP — rail behaviour (≥ 1024px)
 ========================================================= */
 
 @media (min-width: 1024px) {
   .sidebar {
     transition:
-      width 180ms ease,
-      box-shadow 180ms ease;
+      width var(--duration-base) var(--ease-out),
+      box-shadow var(--duration-base) ease;
   }
 
-  /* Labels are faded out (not removed) in the collapsed rail,
-     so screen readers still announce every link. */
+  .sidebar-footer {
+    display: block;
+  }
+
+  /* Labels fade out (not removed) in the rail, so screen readers
+     still announce every link. */
   .sidebar-reveal {
     opacity: 0;
-    transition: opacity 120ms ease;
+    transition: opacity var(--duration-fast) ease;
   }
 
   .navigation-label::before {
     opacity: 1;
   }
 
-  /* Expand on mouse hover (after a short delay, so moving the
-     pointer across the rail doesn't flash it open) or when a
-     keyboard user tabs into it. :focus-visible ignores mouse
-     clicks, so the rail closes after you click a link. */
+  /* Expand on hover (after a short delay, so crossing the rail
+     doesn't flash it open) or when a keyboard user tabs into it. */
   .sidebar:hover,
   .sidebar:has(:focus-visible) {
     width: var(--rail-expanded-width);
@@ -428,10 +506,46 @@
     opacity: 0;
   }
 
-  /* No scrollbar in the 64px collapsed rail (it would squeeze the
-     icons); the list still scrolls with the mouse wheel. */
   .sidebar:not(:hover):not(:has(:focus-visible)) .sidebar-navigation {
     scrollbar-width: none;
+  }
+
+  /* The fold button only matters where the sidebar can be pinned. */
+  .sidebar-toggle {
+    display: none;
+  }
+}
+
+
+/* =========================================================
+   DESKTOP — pinned sidebar with labels (≥ 1280px)
+========================================================= */
+
+@media (min-width: 1280px) {
+  .sidebar-toggle {
+    display: flex;
+  }
+
+  .app:not(.app-rail) .sidebar {
+    width: var(--rail-expanded-width);
+    box-shadow: none;
+  }
+
+  .app:not(.app-rail) .sidebar .sidebar-reveal {
+    opacity: 1;
+    transition-delay: 0ms;
+  }
+
+  .app:not(.app-rail) .navigation-label::before {
+    opacity: 0;
+  }
+
+  .app:not(.app-rail) .sidebar-navigation {
+    scrollbar-width: thin;
+  }
+
+  .app:not(.app-rail) .main-wrapper {
+    margin-left: var(--rail-expanded-width);
   }
 }
 
@@ -450,15 +564,15 @@
     transform: translateX(-100%);
     visibility: hidden; /* keeps hidden links out of the Tab order */
     transition:
-      transform 200ms ease,
-      visibility 0s linear 200ms;
+      transform 220ms var(--ease-out),
+      visibility 0s linear 220ms;
   }
 
   .sidebar.sidebar-open {
     transform: translateX(0);
     visibility: visible;
     box-shadow: var(--shadow-level-4);
-    transition: transform 200ms ease;
+    transition: transform 220ms var(--ease-out);
   }
 
   .sidebar-brand {
@@ -502,6 +616,7 @@
     inset: 0;
     z-index: calc(var(--z-high-sticky) - 1);
     background: var(--color-overlay);
+    backdrop-filter: blur(2px);
   }
 
   .mobile-menu-button {
@@ -513,7 +628,7 @@
   }
 
   .page-content {
-    padding: var(--space-6) var(--space-4);
+    padding: var(--space-5) var(--space-4) var(--space-12);
   }
 }
 
@@ -532,7 +647,7 @@
   }
 
   .page-content {
-    padding: var(--space-5) var(--space-3);
+    padding: var(--space-4) var(--space-3) var(--space-10);
   }
 }
 
@@ -563,7 +678,12 @@
   .sidebar,
   .sidebar-reveal,
   .nav-item,
+  .main-wrapper,
   .navigation-label::before {
     transition: none !important;
+  }
+
+  .page-content > * {
+    animation: none;
   }
 }

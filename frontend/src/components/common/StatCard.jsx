@@ -6,6 +6,7 @@ function StatCard({
   neutral = false,
   icon,
   change,
+  tone, // optional icon colour: success | danger | purple
 }) {
   let iconClass = 'ui-stat-icon'
 
@@ -15,6 +16,10 @@ function StatCard({
 
   if (neutral) {
     iconClass += ' neutral'
+  }
+
+  if (tone) {
+    iconClass += ` ${tone}`
   }
 
   return (

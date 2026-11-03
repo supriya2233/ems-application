@@ -16,6 +16,7 @@ export const MODULE_LABELS = {
   documents: 'Documents',
   assets: 'Assets',
   settings: 'Settings',
+  announcements: 'Announcements',
 }
 
 export const moduleLabel = (module) =>

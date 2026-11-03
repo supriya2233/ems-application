@@ -19,6 +19,8 @@ import activityRoutes from './routes/activityRoutes.js'
 import settingsRoutes from './routes/settingsRoutes.js'
 import approvalRoutes from './routes/approvalRoutes.js'
 import offboardingRoutes from './routes/offboardingRoutes.js'
+import announcementRoutes from './routes/announcementRoutes.js'
+import { analyticsRouter, reportsRouter } from './routes/insightRoutes.js'
 import { startScheduledJobs } from './services/jobs.js'
 import { errorHandler, notFound } from './middleware/errorHandler.js'
 import { clientContext } from './services/events.js'
@@ -67,6 +69,9 @@ app.use('/api/activity', activityRoutes)
 app.use('/api/settings', settingsRoutes)
 app.use('/api/approvals', approvalRoutes)
 app.use('/api/offboarding', offboardingRoutes)
+app.use('/api/announcements', announcementRoutes)
+app.use('/api/analytics', analyticsRouter)
+app.use('/api/reports', reportsRouter)
 
 // Live updates (Server-Sent Events): one long-lived connection per tab.
 app.get('/api/stream', streamHandler)

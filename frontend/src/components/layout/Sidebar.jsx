@@ -1,16 +1,20 @@
 import { NavLink } from 'react-router-dom'
-import { X } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-react'
 
 import { navigationGroups } from '../../config/navigation'
 
 /*
- * Desktop: 64px icon rail that expands on hover / keyboard focus.
+ * Wide screens (≥ 1280px): open with labels; the footer button
+ *   folds it into a 72px icon rail (which expands on hover).
+ * Laptops (1024–1279px): icon rail that expands on hover / focus.
  * Tablet & mobile: slide-in drawer opened from the header.
  *
  * Elements with "sidebar-reveal" fade in when the rail expands.
  * They stay in the DOM, so screen readers always read the labels.
  */
-function Sidebar({ isOpen, closeSidebar }) {
+function Sidebar({ isOpen, closeSidebar, isRail, toggleRail }) {
+  const ToggleIcon = isRail ? PanelLeftOpen : PanelLeftClose
+
   return (
     <aside
       id="app-sidebar"
@@ -26,6 +30,7 @@ function Sidebar({ isOpen, closeSidebar }) {
           <strong>EMS</strong>
           <small>People workspace</small>
         </span>
+
 
         <button
           type="button"
@@ -82,6 +87,19 @@ function Sidebar({ isOpen, closeSidebar }) {
           </div>
         ))}
       </nav>
+
+      <div className="sidebar-footer">
+        <button
+          type="button"
+          className="sidebar-toggle"
+          onClick={toggleRail}
+          aria-pressed={isRail}
+          title={isRail ? 'Show labels' : 'Collapse to icons'}
+        >
+          <ToggleIcon size={18} strokeWidth={1.75} aria-hidden="true" />
+          <span className="nav-label sidebar-reveal">{isRail ? 'Show labels' : 'Collapse sidebar'}</span>
+        </button>
+      </div>
     </aside>
   )
 }

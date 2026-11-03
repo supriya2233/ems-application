@@ -33,13 +33,19 @@ updates everything it affects**, and the dashboard always tells the truth.
 | **Dashboard** | "Needs your attention" links, today at a glance (who's off, joining and leaving), approvals waiting, task progress and a live activity feed. |
 | **Activity log** | Every change ("Approved Priya Sharma's 3 days of Casual leave"), filterable by module, employee, date and words, with cursor-based paging. |
 | **Live updates** | Approve something in one tab and the bell, toasts, dashboard and lists update in every other tab within a second. |
+| **Analytics** | Headcount trend, joiners and leavers, people per department, contract mix, leave by type, attendance, payroll cost and tasks per team for 3, 6 or 12 months. Every chart has a table view. |
+| **Reports** | Eight ready-made reports (directory, headcount, attendance, leave, payroll register, tasks, document expiry, assets) with filters kept in the URL, a totals row, **Download CSV** and print to PDF. |
+| **Announcements** | Post news for everyone or one team, by category; pin important posts; search and filter. Posting raises a notification. |
 
 Also included: Departments (counts calculated from real data, never typed), Tasks
 (board with drag-and-drop or a list), Attendance (per-day sheet), Performance reviews,
 a Calendar (holidays, leave, joining dates) and Settings (leave allowances, holidays, working days).
 
-> Analytics, Announcements, Reports and Help are styled screens using **sample data**; they
-> are not connected to the API yet.
+Help & Support has short guides for each workflow, an FAQ, and a live status check of the
+API and the live-update connection.
+
+The interface uses the [Inter](https://rsms.me/inter/) typeface, self-hosted under the SIL
+Open Font License (`frontend/public/fonts/Inter-LICENSE.txt`).
 
 ## Architecture
 
@@ -121,8 +127,9 @@ npm run dev:demo       # frontend wired to the demo backend (.env.demo)
 ## Tests
 
 ```bash
-cd backend  && npm test      # 61 unit tests: leave day counting, balances, payroll maths,
-                             # onboarding/offboarding status, document expiry, IDs, activity paging
+cd backend  && npm test      # 68 unit tests: leave day counting, balances, payroll maths,
+                             # onboarding/offboarding status, document expiry, IDs, activity
+                             # paging, analytics (headcount trend, attrition, leave by month)
 cd frontend && npm run lint && npm run build
 ```
 
@@ -184,4 +191,3 @@ docs/
 - "Today" is the server's local calendar day. If the server runs in another time zone than
   its users (most cloud hosts use UTC), start it with e.g. `TZ=Asia/Kolkata`.
 - Live updates assume a single server process (events are in memory).
-- Analytics, Announcements, Reports and Help still show sample data.

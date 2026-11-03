@@ -17,6 +17,23 @@ rounded:
 
 # Design System Inspired by Notion
 
+> **EMS v2 update (November 2026).** The sections below are the original reference. The
+> app now uses the values in `frontend/src/styles/tokens.css`, which is the source of truth
+> where the two differ. What changed in v2:
+>
+> | Area | v2 value |
+> |---|---|
+> | Page | Grey canvas `#f5f7fa` behind white cards (`--color-canvas`) |
+> | Neutrals | Cool slate: text `#101828`, secondary `#475467`, borders `#e8ecf1` / inputs `#d3d9e1` |
+> | Typeface | Inter (self-hosted variable font, SIL OFL), body 15px, semibold headings with tight tracking |
+> | Radius | 6 chips · 8 inputs · 10 buttons/menus · 14 cards · 20 hero banners and dialogs |
+> | Elevation | Resting cards use a soft 2-layer shadow (`--shadow-level-2`), hover lifts to level 5 |
+> | Brand flourish | `--gradient-brand` (#0075de → #5a63ea → #9849e8) for the logo mark, active nav marker and selected report; `--gradient-brand-soft` for hero backgrounds. Never behind body text |
+> | Focus | One focus ring for every control: `--focus-ring` (3px, primary at 28%) |
+> | Status | Base colours for dots and bars; `-text` variants (`#15803d`, `#b45309`, `#c32a2f`) for text so it passes AA |
+> | Navigation | Labelled sidebar pinned at ≥ 1280px (can fold to a rail), hover rail at 1024–1279px, drawer below |
+> | Charts | Categorical order `#2a78d6, #eb6834, #1baf7a, #eda100, #e87ba4` (checked for colour-blind separation); single-series charts use the first colour and no legend; every chart has a table view |
+
 ## 1. Visual Theme & Atmosphere
 
 Notion's design system embodies a modern, collaborative, and intelligent workspace aesthetic. The visual personality is clean and minimalist, with purposeful use of bright accent colors that convey action and possibility. The system prioritizes clarity and usability through generous whitespace, subtle micro-interactions, and a carefully balanced neutral foundation that allows content and data to take center stage. The system communicates professionalism and innovation through its precise typography, accessible color contrasts, and intuitive component hierarchy. Playful touches—the diverse character avatars and colorful status badges—inject personality while maintaining enterprise-grade polish.
