@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 
@@ -43,8 +44,17 @@ function Header({ openSidebar, isSidebarOpen }) {
   const breadcrumb = getBreadcrumb(pathname)
   const today = new Date()
 
+  // Show the header's bottom hairline only once content scrolls under it.
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
-    <header className="header">
+    <header className={`header ${scrolled ? 'header-scrolled' : ''}`}>
 
       <div className="header-left">
 

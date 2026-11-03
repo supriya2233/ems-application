@@ -3,8 +3,11 @@ import { Link } from 'react-router-dom'
 import {
   ArrowRight,
   Building2,
+  ChartColumn,
   CircleAlert,
+  Inbox,
   ListChecks,
+  Plane,
   UserCheck,
   Users,
 } from 'lucide-react'
@@ -195,6 +198,10 @@ function Dashboard() {
       =============================================== */}
 
       <section className="dash-intro">
+        <span className="dash-eyebrow">
+          {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+        </span>
+
         <h1>{greeting}</h1>
 
         {loading && (
@@ -217,6 +224,13 @@ function Dashboard() {
             })}
           </p>
         )}
+
+        <nav className="dash-quick" aria-label="Quick actions">
+          <Link to="/employees"><Users size={16} aria-hidden="true" />Employees</Link>
+          <Link to="/leave"><Plane size={16} aria-hidden="true" />Leave requests</Link>
+          <Link to="/approvals"><Inbox size={16} aria-hidden="true" />Approvals</Link>
+          <Link to="/analytics"><ChartColumn size={16} aria-hidden="true" />Analytics</Link>
+        </nav>
       </section>
 
 

@@ -283,6 +283,7 @@
 .activity-dot-offboarding,
 .activity-dot-departments { background: var(--color-accent-dark-blue); }
 .activity-dot-settings { background: var(--color-dark-gray); }
+.activity-dot-announcements { background: var(--color-accent-purple); }
 
 /* Profile: the timeline spans both columns */
 .p360-span-all {
@@ -296,7 +297,7 @@
 /* Dashboard: today at a glance ---------------------------- */
 
 .today-panel {
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6);
 }
 
 .today-approvals {

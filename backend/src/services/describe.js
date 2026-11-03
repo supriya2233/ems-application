@@ -279,6 +279,23 @@ const MODULES = {
       }
     },
   },
+
+  announcements: {
+    label: (doc) => `the announcement “${doc.title ?? doc.announcementId ?? ''}”`,
+    link: () => '/announcements',
+    created: (doc) => ({
+      summary: `Posted “${doc.title}” for ${doc.audience === 'Everyone' || !doc.audience ? 'everyone' : doc.audience}`,
+      notify: { title: 'New announcement', message: doc.title, tone: 'info' },
+    }),
+    updated: (before, after) => {
+      if (changed(before, after, 'pinned')) {
+        return after.pinned
+          ? { action: 'pinned', summary: `Pinned “${after.title}” to the top` }
+          : { action: 'unpinned', summary: `Unpinned “${after.title}”` }
+      }
+      return null
+    },
+  },
 }
 
 export const MODULE_NAMES = Object.keys(MODULES)

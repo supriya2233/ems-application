@@ -16,6 +16,7 @@ import './styles/leave.css'
 import './styles/hiring.css'
 import './styles/lifecycle.css'
 import './styles/workspace.css'
+import './styles/insights.css'
 
 // Tag API requests with this tab's ID (see services/apiClient.js).
 installClientIdHeader()

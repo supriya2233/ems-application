@@ -4,8 +4,21 @@ import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Header from './Header'
 
+const RAIL_KEY = 'ems.sidebar'
+
 function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  // Wide screens show the sidebar with labels; it can be folded to
+  // an icon rail. The choice is remembered in this browser.
+  const [isRail, setIsRail] = useState(() => localStorage.getItem(RAIL_KEY) === 'rail')
+
+  const toggleRail = () => {
+    setIsRail((current) => {
+      localStorage.setItem(RAIL_KEY, current ? 'open' : 'rail')
+      return !current
+    })
+  }
 
   const closeSidebar = () => {
     setIsSidebarOpen(false)
@@ -32,11 +45,13 @@ function Layout() {
   }, [isSidebarOpen])
 
   return (
-    <div className="app">
+    <div className={`app ${isRail ? 'app-rail' : ''}`}>
 
       <Sidebar
         isOpen={isSidebarOpen}
         closeSidebar={closeSidebar}
+        isRail={isRail}
+        toggleRail={toggleRail}
       />
 
       {isSidebarOpen && (
